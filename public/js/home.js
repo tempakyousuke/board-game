@@ -46,7 +46,7 @@ export function Home({ initialName, onCreate, onJoin, busy }) {
               value=${cleanCode}
               onInput=${(e) => setCode(e.target.value)}
               placeholder="コード"
-              inputmode="latin"
+              inputmode="text"
               autocapitalize="characters"
               autocomplete="off"
               aria-label="ルームコード（4文字）"

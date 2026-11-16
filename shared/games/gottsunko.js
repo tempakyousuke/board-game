@@ -26,10 +26,9 @@ export const MOVE_RANGE = 2;
 const MAX_GEM = 9;
 const GEM_WEIGHTS = [[1, 45], [2, 30], [3, 17], [5, 8]];
 
+// 盤は人数に合わせて広げる。広すぎると誰ともかぶらず、読み合いにならない。
 function sizeFor(n) {
-  if (n <= 3) return 5;
-  if (n === 4) return 6;
-  return 7;
+  return Math.min(7, n + 2);
 }
 
 function perimeter(size) {
@@ -151,7 +150,8 @@ function resolve(state, rng) {
       rng,
       state.gems.map((_, i) => i).filter((i) => state.gems[i] === 0 && !state.pos.includes(i)),
     );
-    const count = Math.min(free.length, Math.max(2, n - 1));
+    // 新しくわく宝石は人数より1つ少ない。全員ぶんは無いので、取り合いになる。
+    const count = Math.min(free.length, Math.max(1, n - 1));
     for (let k = 0; k < count; k++) {
       const value = weighted(rng, GEM_WEIGHTS);
       state.gems[free[k]] = value;

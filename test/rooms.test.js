@@ -101,6 +101,22 @@ test('CPU が自動で動き、ゲームが最後まで進む', async () => {
   assert.equal(a.conn.last().game, null);
 });
 
+test('席に人間がいない卓は CPU だけで最後まで進む', async () => {
+  const { room, members } = setup(['あや']);
+  const [a] = members;
+  room.handle(a.player, { t: 'setGame', gameId: 'dokan' });
+  room.handle(a.player, { t: 'addBot' });
+  room.handle(a.player, { t: 'addBot' });
+  room.handle(a.player, { t: 'setSpectator', value: true });
+  room.handle(a.player, { t: 'start' });
+  assert.equal(room.phase, 'playing');
+  assert.equal(a.conn.last().game.seat, -1);
+  for (let i = 0; i < 1000 && room.phase === 'playing'; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 3));
+  }
+  assert.equal(room.phase, 'finished', '爆発のあとの「次へ」も CPU が押して進む');
+});
+
 test('非公開の情報は本人にしか届かない', () => {
   const { room, members } = setup(['あや', 'けん', 'みお']);
   const [a] = members;
@@ -219,4 +235,6 @@ test('名前は整えられ、長すぎる名前は切られる', () => {
   assert.equal(members[0].player.name.length, 12);
   room.handle(members[0].player, { t: 'rename', name: '   ' });
   assert.equal(members[0].player.name, 'ゲスト');
+  room.handle(members[0].player, { t: 'rename', name: { toString: 1 } });
+  assert.equal(members[0].player.name, 'ゲスト', '文字列でない名前は無視する');
 });

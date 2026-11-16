@@ -40,7 +40,7 @@ function PlayerStrip({ snap, players, emotes, send }) {
   const turnSeats = ui.turnSeats ? ui.turnSeats(view, game.pending) : game.pending;
 
   return html`
-    <div class="strip">
+    <div class=${cx('strip', players.length >= 5 && 'is-dense')}>
       ${players.map((player, s) => {
         const pending = turnSeats.includes(s);
         const isMe = s === game.seat;
@@ -53,7 +53,7 @@ function PlayerStrip({ snap, players, emotes, send }) {
             class=${cx('strip-player', pending && !view.over && 'is-pending', isMe && 'is-me', winner && 'is-winner', !player.connected && 'is-away')}
             style=${`--c:${paletteOf(player).color};--soft:${paletteOf(player).soft}`}
           >
-            <${Avatar} player=${player} size="md" active=${pending && !view.over} />
+            <${Avatar} player=${player} size=${players.length >= 5 ? 'sm' : 'md'} active=${pending && !view.over} />
             <span class="strip-text">
               <span class="strip-name">${player.name}</span>
               <span class="strip-extra">
@@ -122,6 +122,19 @@ export function GameScreen({ snap, send, emotes }) {
   );
   const act = (action) => send({ t: 'action', action });
   const progress = ui.progress(view);
+  const turnSeats = ui.turnSeats ? ui.turnSeats(view, game.pending) : game.pending;
+  const myTurn = !view.over && turnSeats.includes(game.seat);
+
+  // 別のアプリで話しているあいだに番が来ても気づけるよう、タブの題名と振動で知らせる。
+  useEffect(() => {
+    if (!myTurn) return undefined;
+    const before = document.title;
+    document.title = `● あなたの番です — ${ui.meta.name}`;
+    if (document.visibilityState === 'hidden') navigator.vibrate?.(120);
+    return () => {
+      document.title = before;
+    };
+  }, [myTurn, game.no]);
   const watching = game.seat < 0;
   const vacant = watching ? players.filter((p) => !p.connected && !p.bot && p.color >= 0) : [];
   const watchers = room.players.filter((p) => !game.seats.includes(p.id));
@@ -129,8 +142,10 @@ export function GameScreen({ snap, send, emotes }) {
   return html`
     <main class="page page-game">
       <div class="game-head">
-        <h1>${ui.meta.name}</h1>
-        ${progress && !view.over && html`<span class="pill pill-strong">${progress}</span>`}
+        <div class="game-head-title">
+          <h1>${ui.meta.name}</h1>
+          ${progress && !view.over && html`<span class="pill pill-strong">${progress}</span>`}
+        </div>
         <span class="game-head-actions">
           <button class="btn btn-small" onClick=${() => setShowRules(true)} aria-label="ルール">📖<span class="btn-label"> ルール</span></button>
           ${isHost && html`<button class="btn btn-small" onClick=${() => setShowMenu(true)} aria-label="ホストメニュー">⚙️</button>`}

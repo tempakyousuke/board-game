@@ -18,6 +18,26 @@ const manager = new RoomManager();
 const app = express();
 app.disable('x-powered-by');
 
+// 外部から読み込むのは Google Fonts だけ。それ以外は自分のサーバーのものに限る。
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data:",
+  "connect-src 'self' ws: wss:",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
+app.use((_req, res, next) => {
+  res.setHeader('Content-Security-Policy', CONTENT_SECURITY_POLICY);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
 app.get('/healthz', (_req, res) => {
   res.json({ ok: true, ...manager.stats() });
 });

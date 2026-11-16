@@ -174,7 +174,7 @@ function App() {
         <div class="loading">
           <span class="spinner"></span>
           <p>ルームに接続しています…</p>
-          <small>サーバーが眠っていると、起きるまで30秒ほどかかることがあります。</small>
+          <small>サーバーが眠っていると、起きるまで1分ほどかかることがあります。</small>
         </div>
       </main>
     `;

@@ -200,11 +200,9 @@ export default {
   progress: (view) => `ラウンド ${view.round} / ${view.maxRounds}`,
   waiting: () => false,
   turnSeats: (view, pending) => (view.phase === 'play' ? pending : []),
-  extra: (view, s) => {
-    const parts = [];
-    if (view.phase === 'play') parts.push(`今回 +${view.roundPoints[s]}`);
-    if (view.phase === 'play' && view.passLeft[s] > 0) parts.push('パス可');
-    if (view.booms[s] > 0) parts.push('💥'.repeat(view.booms[s]));
-    return parts.join(' ');
-  },
+  extra: (view, s) => html`
+    ${view.phase === 'play' && html`<span title="このラウンドでためた点">+${view.roundPoints[s]}</span>`}
+    ${view.phase === 'play' && view.passLeft[s] > 0 && html` <i class="mini-tag">パス</i>`}
+    ${view.booms[s] > 0 && ` ${'💥'.repeat(view.booms[s])}`}
+  `,
 };

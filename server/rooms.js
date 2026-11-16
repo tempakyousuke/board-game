@@ -26,7 +26,7 @@ export const CLOSE_LEFT = 4003;
 export class RoomError extends Error {}
 
 function cleanName(raw) {
-  const name = String(raw ?? '')
+  const name = (typeof raw === 'string' ? raw : '')
     .replace(/[\u0000-\u001f\u007f]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -465,12 +465,13 @@ export class Room {
 
   nextBotMove() {
     const game = GAMES[this.game.id];
+    const seated = this.game.seats.map((id) => this.players.find((p) => p.id === id));
+    // 「次へ」は結果を読み終えた人間が押すもの。ただし席に人間がだれもいなければ CPU が進める。
+    const humanSeated = seated.some((p) => p && !p.bot && p.conn);
     for (const seat of game.pending(this.game.state)) {
-      const player = this.players.find((p) => p.id === this.game.seats[seat]);
-      if (!player?.bot) continue;
+      if (!seated[seat]?.bot) continue;
       const action = game.bot(this.game.state, seat, this.manager.rng);
-      // 「次へ」は結果を読み終えた人間が押すものなので、CPU には押させない。
-      if (!action || action.type === 'next') continue;
+      if (!action || (action.type === 'next' && humanSeated)) continue;
       return { seat, action };
     }
     return null;

@@ -1,0 +1,14 @@
+# Render の Blueprint。リポジトリをつないで「New > Blueprint」を選ぶと、この内容でデプロイされます。
+# ルームの状態はメモリ上に持つので、インスタンスは必ず1つで動かしてください。
+services:
+  - type: web
+    name: bodoge-hiroba
+    runtime: node
+    plan: free
+    region: singapore # 日本からいちばん近いリージョン
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 22
