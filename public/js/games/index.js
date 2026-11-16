@@ -9,8 +9,9 @@ import bento from './bento.js';
 import tataki from './tataki.js';
 import hitsuji from './hitsuji.js';
 import ninja from './ninja.js';
+import noronoro from './noronoro.js';
 
-const SCREENS = { toudai, gottsunko, dokan, korokoro, bento, tataki, hitsuji, ninja };
+const SCREENS = { toudai, gottsunko, dokan, korokoro, bento, tataki, hitsuji, ninja, noronoro };
 
 export const GAME_UI = Object.fromEntries(
   Object.keys(GAMES).map((id) => [id, { meta: GAMES[id].meta, ...SCREENS[id] }]),

@@ -2482,7 +2482,7 @@ button.game-card-main {
 }
 .hj-welcome {
   position: absolute;
-  top: -55%;
+  top: 78%;
   left: 50%;
   transform: translateX(-50%);
   z-index: 5;
@@ -2881,6 +2881,216 @@ button.game-card-main {
 }
 .nj-key.is-possible {
   background: #6a4f9e;
+}
+
+/* ---- のろのろレース ---------------------------------------------------- */
+
+.nr-track {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #6fae5c;
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: var(--shadow);
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.nr-head,
+.nr-lane {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+.nr-lane {
+  position: relative;
+  border: 0;
+  padding: 0;
+  background: none;
+  border-radius: 10px;
+  text-align: left;
+  color: inherit;
+}
+.nr-lane:disabled {
+  cursor: default;
+}
+.nr-label {
+  flex: none;
+  width: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.nr-rank {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  font-style: normal;
+  font-weight: 800;
+  font-size: 0.72rem;
+}
+.nr-star {
+  font-style: normal;
+  color: #ffd166;
+  font-size: 0.85rem;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+.nr-cells {
+  position: relative;
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: 2px;
+}
+.nr-mark {
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.4;
+}
+.nr-cell {
+  height: 40px;
+  background: #e9d7ab;
+  border-radius: 5px;
+}
+.nr-cell.is-leaf {
+  background: #b7e39a;
+}
+.nr-cell.is-puddle {
+  background: #a9d6f2;
+}
+.nr-cell.is-goal {
+  background:
+    repeating-conic-gradient(#3a2a22 0% 25%, #fff 0% 50%) 0 0 / 14px 14px;
+}
+.nr-lane.is-fav .nr-cell:not(.is-goal) {
+  box-shadow: inset 0 0 0 2px #ffd166;
+}
+.nr-lane.is-open {
+  cursor: pointer;
+}
+.nr-lane.is-open .nr-cells {
+  outline: 2px dashed rgba(255, 255, 255, 0.9);
+  outline-offset: 1px;
+  border-radius: 6px;
+}
+.nr-lane.is-aim .nr-cells {
+  outline: 3px solid var(--accent-deep);
+}
+.nr-racer,
+.nr-ghost {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.75rem;
+  line-height: 1;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+.nr-racer {
+  transition: left 0.6s cubic-bezier(0.3, 1.3, 0.5, 1);
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.3));
+  z-index: 2;
+}
+.nr-lane.is-moved .nr-racer {
+  animation: wobble 0.4s 2;
+}
+.nr-ghost {
+  opacity: 0.45;
+  z-index: 1;
+}
+.nr-last {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 6px;
+  font-size: 0.88rem;
+}
+.nr-effect {
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 0 10px;
+}
+.nr-effect.is-leaf {
+  background: #dcf5e1;
+  color: var(--green-deep);
+}
+.nr-effect.is-puddle {
+  background: #dff0fb;
+  color: #1f6a99;
+}
+.nr-hand {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.nr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px 6px;
+  border-radius: 14px;
+  border: 2px solid var(--line-deep);
+  background: #fff;
+  box-shadow: 0 4px 0 var(--line-deep);
+  cursor: pointer;
+  line-height: 1.15;
+  transition: transform 0.08s;
+}
+.nr-card-top {
+  font-size: 1.9rem;
+}
+.nr-card b {
+  font-size: 1.4rem;
+}
+.nr-card small {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.nr-card.is-any {
+  background: #fff7d6;
+}
+.nr-card.is-back {
+  background: #fde8e8;
+}
+.nr-card.is-on {
+  border-color: var(--accent-deep);
+  box-shadow: 0 7px 0 var(--accent-deep);
+  transform: translateY(-5px);
+}
+.nr-card:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+.nr-fav {
+  text-align: center;
+  background: #fff7d6;
+  border: 2px dashed #e8c44a;
+  border-radius: 12px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+}
+.nr-fav span {
+  display: inline-block;
+  margin-left: 8px;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+.nr-note {
+  font-size: 0.76rem;
+  text-align: center;
 }
 
 /* ---- アニメーション ---------------------------------------------------- */

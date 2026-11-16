@@ -164,3 +164,71 @@ test('tataki: お目当ては2倍、4種類そろえるとボーナス、福袋�
   assert.equal(view.item.value, 6, '買われたら中身がわかる');
   assert.equal(view.lastSale.item.cat, 'gakki');
 });
+
+// ---- のろのろレース --------------------------------------------------------
+
+test('noronoro: カードどおりに進み、はっぱとみずたまりの効果がかかる', async () => {
+  const noro = await import('../shared/games/noronoro.js');
+  const game = GAMES.noronoro;
+  const rng = mulberry32(21);
+  const state = game.setup({ n: 3, rng });
+  const seat = state.turn;
+
+  // 進む相手が決まっているカードは、ねらいを変えられない。
+  state.hands[seat] = [
+    { k: 'go', racer: 2, v: 2 },
+    { k: 'any', v: 2 },
+    { k: 'back', v: 2 },
+  ];
+  game.act(state, seat, { type: 'play', card: 0, racer: 5 }, rng);
+  assert.equal(state.pos[2], 2);
+  assert.equal(state.pos[5], 0);
+  assert.equal(state.hands[seat].length, noro.HAND_SIZE, '出したら1枚引く');
+  assert.equal(state.turn, (seat + 1) % 3);
+  assert.throws(() => game.act(state, seat, { type: 'play', card: 0 }, rng), GameError, '番ではない');
+
+  // はっぱ (3) にぴったり止まると +1、みずたまり (5) は −1。
+  assert.deepEqual(noro.destination([1, 0, 0, 0, 0, 0], 0, 2), { to: 4, effect: 'leaf' });
+  assert.deepEqual(noro.destination([3, 0, 0, 0, 0, 0], 0, 2), { to: 4, effect: 'puddle' });
+  assert.deepEqual(noro.destination([4, 0, 0, 0, 0, 0], 0, 2), { to: 6, effect: null });
+  // もどるときは効果なし。スタートより後ろには下がらない。
+  assert.deepEqual(noro.destination([1, 0, 0, 0, 0, 0], 0, -2), { to: 0, effect: null });
+  assert.deepEqual(noro.destination([5, 0, 0, 0, 0, 0], 0, -2), { to: 3, effect: null });
+
+  // 「だれでも」「あともどり」は相手を選ぶ必要がある。
+  const next = state.turn;
+  state.hands[next] = [{ k: 'back', v: 2 }, { k: 'any', v: 2 }, { k: 'go', racer: 0, v: 1 }];
+  assert.throws(() => game.act(state, next, { type: 'play', card: 0 }, rng), GameError);
+  game.act(state, next, { type: 'play', card: 0, racer: 2 }, rng);
+  assert.equal(state.pos[2], 0);
+});
+
+test('noronoro: 推しは本人にしか見えず、ゴールで公開されて順位の点が入る', async () => {
+  const noro = await import('../shared/games/noronoro.js');
+  const game = GAMES.noronoro;
+  const rng = mulberry32(22);
+  const state = game.setup({ n: 3, rng });
+  assert.equal(new Set(state.fav).size, 3, '推しはかぶらない');
+  for (let seat = 0; seat < 3; seat++) {
+    const view = game.view(state, seat);
+    assert.equal(view.myFav, state.fav[seat]);
+    assert.equal(view.favs, null);
+    assert.equal(view.hand.length, noro.HAND_SIZE);
+  }
+  assert.equal(game.view(state, -1).myFav, null);
+  assert.deepEqual(game.view(state, -1).hand, []);
+
+  // 同じマスなら、先に着いていたほうが上の順位。
+  assert.deepEqual(noro.ranking([4, 4, 2, 0, 0, 0], [7, 6, 8, 3, 4, 5]), [1, 0, 2, 3, 4, 5]);
+
+  state.fav = [0, 1, 2];
+  state.pos = [9, 6, 6, 0, 0, 2];
+  state.stamp = [10, 12, 11, 3, 4, 13];
+  const seat = state.turn;
+  state.hands[seat] = [{ k: 'any', v: 2 }, { k: 'go', racer: 3, v: 1 }, { k: 'go', racer: 4, v: 1 }];
+  game.act(state, seat, { type: 'play', card: 0, racer: 0 }, rng);
+  assert.equal(state.over, true);
+  assert.deepEqual(state.result.detail.order.slice(0, 3), [0, 2, 1]);
+  assert.deepEqual(state.result.scores, [10, 4, 6]);
+  assert.deepEqual(game.view(state, -1).favs, [0, 1, 2]);
+});
