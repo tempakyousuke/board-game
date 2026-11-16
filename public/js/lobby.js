@@ -100,17 +100,22 @@ export function Lobby({ snap, send, notify }) {
           ${!isHost && html`<small class="muted">${host?.name ?? 'ホスト'} さんが選びます</small>`}
         </div>
         <div class="game-grid">
-          ${GAME_METAS.map(
-            (m) => html`
+          ${GAME_METAS.map((m) => {
+            let mismatch = null;
+            if (count < m.minPlayers) mismatch = `あと ${m.minPlayers - count} 人いれば遊べます`;
+            else if (count > m.maxPlayers) mismatch = `${m.maxPlayers} 人までのゲームです`;
+            return html`
               <${GameCard}
                 key=${m.id}
                 meta=${m}
+                compact
+                mismatch=${mismatch}
                 selected=${room.gameId === m.id}
                 onSelect=${isHost ? () => send({ t: 'setGame', gameId: m.id }) : undefined}
                 onRules=${() => setRulesFor(m.id)}
               />
-            `,
-          )}
+            `;
+          })}
         </div>
       </section>
 

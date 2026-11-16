@@ -743,6 +743,36 @@ button.game-card-main {
   align-self: flex-end;
   margin: -6px 10px 6px;
 }
+.game-card.is-compact .game-card-art {
+  width: 58px;
+  min-height: 66px;
+  font-size: 1.25rem;
+}
+.game-card.is-compact .game-card-tagline {
+  font-size: 0.8rem;
+}
+.game-card.is-compact .game-card-rules {
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  margin: 0;
+}
+.game-card.is-compact .game-card-meta {
+  padding-right: 52px;
+}
+.game-card.is-mismatch:not(.is-selected) .game-card-art {
+  filter: grayscale(0.7);
+  opacity: 0.7;
+}
+.game-card-mismatch {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--accent-deep);
+}
+.pill-warn {
+  background: #ffe2d8;
+  color: var(--accent-deep);
+}
 
 .howto ol {
   list-style: none;
