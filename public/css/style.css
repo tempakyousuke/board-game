@@ -3093,6 +3093,213 @@ button.game-card-main {
   text-align: center;
 }
 
+/* ---- はたけパズル ------------------------------------------------------ */
+
+.hk-table {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hk-board {
+  gap: 3px;
+  background: #7a5230;
+  max-width: min(440px, max(260px, calc(100dvh - 420px)));
+}
+.hk-cell {
+  background: #c99b6d;
+  border-radius: 7px;
+  font-size: calc(100cqw / var(--n) * 0.56);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.12);
+}
+.hk-cell.is-open {
+  cursor: pointer;
+}
+.hk-cell.is-soil:not(.is-planted) {
+  background: #e3c08f;
+  box-shadow: inset 0 0 0 2px #ffe27a;
+}
+.hk-soil {
+  font-size: 0.7em;
+  opacity: 0.9;
+}
+.hk-cell.is-rock {
+  background: #8f7a66;
+}
+.hk-cell.is-planted {
+  background: #eaf6dc;
+}
+.hk-cell.is-line {
+  box-shadow:
+    inset 0 -3px 0 rgba(0, 0, 0, 0.12),
+    inset 0 0 0 2px #e8a100;
+}
+.hk-cell.is-fresh {
+  animation: pop 0.4s;
+}
+.hk-cell.is-ghost {
+  background: #d9f5c9;
+  box-shadow: inset 0 0 0 3px var(--green-deep);
+}
+.hk-cell.is-bad {
+  background: #f7c9c9;
+  box-shadow: inset 0 0 0 3px var(--danger);
+}
+.hk-cell.is-chosen {
+  background: #fff3c9;
+  box-shadow: inset 0 0 0 3px #e8a100;
+}
+.hk-ghost {
+  opacity: 0.7;
+}
+/* 形ごとに色を変えて、どこにどのたねを植えたかが見分けられるようにする。 */
+.hk-morokoshi {
+  --hk: #ffeaa6;
+}
+.hk-nasu {
+  --hk: #dccbf3;
+}
+.hk-kabocha {
+  --hk: #ffd3a6;
+}
+.hk-kyuri {
+  --hk: #cbeebb;
+}
+.hk-hakusai {
+  --hk: #e2f4c3;
+}
+.hk-ichigo {
+  --hk: #ffd0d5;
+}
+.hk-mame {
+  --hk: #c5ebc9;
+}
+.hk-suika {
+  --hk: #f8c5cf;
+}
+.hk-budo {
+  --hk: #d6c6f4;
+}
+.hk-togarashi {
+  --hk: #ffc7b6;
+}
+.hk-piman {
+  --hk: #c4ecd2;
+}
+.hk-seed {
+  --hk: #edf7d6;
+}
+.hk-cell.is-planted,
+.hk-mini-grid .is-on {
+  background: var(--hk, #eaf6dc);
+}
+
+.hk-mini {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--paper);
+  border: 2px solid var(--line);
+  border-top: 5px solid var(--c);
+  border-radius: 12px;
+  padding: 4px 6px 6px;
+}
+.hk-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 13px);
+  gap: 1px;
+  justify-content: center;
+  background: #7a5230;
+  padding: 2px;
+  border-radius: 5px;
+}
+.hk-mini-grid i {
+  width: 13px;
+  height: 13px;
+  background: #c99b6d;
+  border-radius: 2px;
+}
+.hk-mini-grid .is-rock {
+  background: #8f7a66;
+}
+
+.hk-shape {
+  display: inline-grid;
+  grid-template-columns: repeat(var(--cols), 1em);
+  gap: 2px;
+  font-size: 26px;
+  vertical-align: middle;
+}
+.hk-shape i {
+  width: 1em;
+  height: 1em;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  border-radius: 4px;
+}
+.hk-shape i.on {
+  background: #eaf6dc;
+  box-shadow: inset 0 0 0 1.5px #9fcf86;
+}
+.hk-shape i.on {
+  font-size: 0.62em;
+  width: 1.613em;
+  height: 1.613em;
+}
+.hk-shape-sm {
+  font-size: 14px;
+}
+.hk-shape-lg {
+  font-size: 30px;
+}
+.hk-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hk-current {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 132px;
+  background: #faf3e3;
+  border-radius: 14px;
+  padding: 8px;
+}
+.hk-current.is-off {
+  opacity: 0.4;
+}
+.hk-current small {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+.hk-buttons {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hk-buttons .btn {
+  width: 100%;
+}
+.btn.is-toggled {
+  background: #e3f6e7;
+  border-color: var(--green-deep);
+  box-shadow: 0 3px 0 var(--green-deep);
+}
+.hk-next,
+.hk-score {
+  text-align: center;
+  font-size: 0.85rem;
+}
+.hk-score strong {
+  font-size: 1.1rem;
+}
+
 /* ---- アニメーション ---------------------------------------------------- */
 
 @keyframes spin {

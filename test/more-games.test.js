@@ -232,3 +232,90 @@ test('noronoro: 推しは本人にしか見えず、ゴールで公開されて�
   assert.deepEqual(state.result.scores, [10, 4, 6]);
   assert.deepEqual(game.view(state, -1).favs, [0, 1, 2]);
 });
+
+// ---- はたけパズル ----------------------------------------------------------
+
+test('hatake: 形はまわしても裏返しても同じ形として認められる', async () => {
+  const hatake = await import('../shared/games/hatake.js');
+  const { SIZE, orientations, matchesShape, transform, SHAPES } = hatake;
+  const at = (r, c) => r * SIZE + c;
+
+  // 向きの数: 正方形は1、まっすぐは2、L字 (4マス) は裏返しを入れて8。
+  assert.equal(orientations('kabocha').length, 1);
+  assert.equal(orientations('kyuri').length, 2);
+  assert.equal(orientations('hakusai').length, 8);
+  assert.equal(orientations('mame').length, 4);
+
+  // まわすと、たて3マスがよこ3マスになる。
+  assert.deepEqual(transform(SHAPES.morokoshi.cells, 1), [[0, 0], [1, 0], [2, 0]]);
+
+  // 畑のどこに置いても、向きが合っていれば OK。
+  assert.ok(matchesShape('morokoshi', [at(2, 1), at(2, 2), at(2, 3)]));
+  assert.ok(matchesShape('morokoshi', [at(3, 5), at(4, 5), at(5, 5)]));
+  assert.ok(!matchesShape('morokoshi', [at(2, 1), at(2, 2), at(3, 2)]), '曲がっていたら別の形');
+  assert.ok(matchesShape('nasu', [at(0, 0), at(0, 1), at(1, 1)]));
+  assert.ok(matchesShape('mame', [at(0, 0), at(0, 1), at(1, 1), at(1, 2)]), '裏返したえだまめ');
+  assert.ok(!matchesShape('mame', [at(0, 0), at(0, 1), at(1, 0), at(1, 1)]));
+  // 端をまたいで次の行にはみ出した並びは、形として認めない。
+  assert.ok(!matchesShape('morokoshi', [at(0, 4), at(0, 5), at(1, 0)]));
+});
+
+test('hatake: 植えたマス・そろった列・ふかふかの土で点が入る', async () => {
+  const { SIZE, scoreField, LINE_POINTS, SOIL_POINTS } = await import('../shared/games/hatake.js');
+  const field = new Array(SIZE * SIZE).fill(null);
+  for (let c = 0; c < SIZE; c++) field[c] = 'kyuri'; // 1行目をすべて埋める
+  field[2] = 'rock'; // 岩も「埋まっている」として列に数えるが、植えたマスには数えない
+  field[SIZE] = 'seed';
+  const score = scoreField(field, [0, SIZE, 20]);
+  assert.equal(score.planted, 6);
+  assert.equal(score.lines, 1);
+  assert.equal(score.soil, 2);
+  assert.equal(score.total, 6 + LINE_POINTS + 2 * SOIL_POINTS);
+});
+
+test('hatake: 全員が決めるまで置いた場所は見えず、そろうと同時に植わる', async () => {
+  const { SIZE, SEEDS, placements } = await import('../shared/games/hatake.js');
+  const game = GAMES.hatake;
+  const rng = mulberry32(31);
+  const state = game.setup({ n: 2, rng });
+  const shape = state.deck[0];
+  const spots = placements(state.fields[0], shape);
+  assert.ok(spots.length > 0);
+
+  game.act(state, 0, { type: 'plant', cells: spots[0] }, rng);
+  assert.ok(state.fields[0].every((v) => v === null || v === 'rock'), 'まだ植わっていない');
+  assert.deepEqual(game.view(state, 0).myChoice, { kind: 'plant', cells: spots[0] });
+  assert.equal(game.view(state, 1).myChoice, null);
+  assert.equal(JSON.stringify(game.view(state, 1)).includes('"choice"'), false);
+  assert.deepEqual(game.view(state, 1).submitted, [true, false]);
+
+  // 形のちがう置き方、重なる置き方、岩の上は拒否される。
+  assert.throws(() => game.act(state, 1, { type: 'plant', cells: [0, 7, 14] }, rng), GameError);
+  assert.throws(() => game.act(state, 1, { type: 'plant', cells: [spots[0][0], spots[0][0]] }, rng), GameError);
+  assert.throws(() => game.act(state, 1, { type: 'seed', cell: state.rocks[0] }, rng), GameError);
+
+  const free = state.fields[1].findIndex((v) => v === null);
+  game.act(state, 1, { type: 'seed', cell: free }, rng);
+  assert.equal(state.round, 2);
+  for (const cell of spots[0]) assert.equal(state.fields[0][cell], shape);
+  assert.equal(state.fields[1][free], 'seed');
+  assert.equal(state.seeds[1], SEEDS - 1);
+  assert.deepEqual(state.last[1], [free]);
+
+  // ひとつぶだねは使い切ったらもう使えない。見送りはいつでもできる。
+  state.seeds[1] = 0;
+  const another = state.fields[1].findIndex((v) => v === null);
+  assert.throws(() => game.act(state, 1, { type: 'seed', cell: another }, rng), GameError);
+  game.act(state, 1, { type: 'skip' }, rng);
+  assert.deepEqual(game.view(state, 1).myChoice, { kind: 'skip' });
+  assert.equal(SIZE, 6);
+});
+
+test('hatake: 1人でも最後まで遊べて、称号がつく', () => {
+  const game = GAMES.hatake;
+  const rng = mulberry32(32);
+  const state = game.setup({ n: 1, rng });
+  while (!state.over) game.act(state, 0, game.bot(state, 0, rng), rng);
+  assert.equal(state.result.scores.length, 1);
+  assert.match(state.result.headline, /^\d+点 — /);
+});
