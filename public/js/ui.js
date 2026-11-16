@@ -78,6 +78,7 @@ export const GAME_ART = {
   korokoro: { bg: 'linear-gradient(160deg,#8fd16f,#4aa85a)', fg: '#123b1a', icons: ['🎲', '🌷'] },
   bento: { bg: 'linear-gradient(160deg,#f9b27c,#e8704a)', fg: '#4a1d0a', icons: ['🍱', '🍤'] },
   tataki: { bg: 'linear-gradient(160deg,#c94f4f,#8c2f39)', fg: '#fff', icons: ['🔔', '🏺'] },
+  hitsuji: { bg: 'linear-gradient(160deg,#ffcf8a,#f29b6b)', fg: '#4a2c0a', icons: ['🐑', '🐕'] },
 };
 
 export function GameCard({ meta, selected = false, onSelect, onRules, compact = false }) {

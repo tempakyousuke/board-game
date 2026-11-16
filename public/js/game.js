@@ -61,7 +61,7 @@ function PlayerStrip({ snap, players, emotes, send }) {
                 ${simultaneous && player.connected && html` ${pending ? '🤔' : '✅'}`}
               </span>
             </span>
-            <span class="strip-score"><b>${scores[s]}</b><small>${ui.unit}</small></span>
+            ${scores && html`<span class="strip-score"><b>${scores[s]}</b><small>${ui.unit}</small></span>`}
             ${isMe && html`<span class="strip-you">あなた</span>`}
             ${emote && html`<span key=${emote.id} class="emote-pop">${emote.emoji}</span>`}
             ${stalled &&
@@ -82,6 +82,27 @@ function ResultCard({ snap, players, send }) {
   const iWon = result.winners.includes(game.seat);
   const winnerNames = result.winners.map((s) => players[s].name).join(' さん・');
 
+  const hostButtons = isHost
+    ? html`
+        <div class="row">
+          <button class="btn btn-primary" onClick=${() => send({ t: 'rematch' })}>もう一度あそぶ</button>
+          <button class="btn" onClick=${() => send({ t: 'toLobby' })}>ほかのゲームをえらぶ</button>
+        </div>
+      `
+    : html`<p class="muted">ホストが次のゲームを選ぶのを待っています…</p>`;
+
+  // 協力ゲームは順位がないので、全員の結果を1つだけ出す。
+  if (result.coop) {
+    return html`
+      <section class=${cx('result', !result.success && 'is-lost')}>
+        <h2>${result.success ? '🎉 みんなの勝ち！' : '😢 ざんねん…'}</h2>
+        ${result.success && html`<p class="result-stars" aria-label=${`星${result.stars}つ`}>${'★'.repeat(result.stars)}<span>${'★'.repeat(3 - result.stars)}</span></p>`}
+        <p class="result-headline">${result.headline}</p>
+        ${hostButtons}
+      </section>
+    `;
+  }
+
   return html`
     <section class="result">
       <h2>${iWon ? '🎉 あなたの勝ち！' : `🏆 ${winnerNames} さんの勝ち！`}</h2>
@@ -97,14 +118,7 @@ function ResultCard({ snap, players, send }) {
           `,
         )}
       </ol>
-      ${isHost
-        ? html`
-            <div class="row">
-              <button class="btn btn-primary" onClick=${() => send({ t: 'rematch' })}>もう一度あそぶ</button>
-              <button class="btn" onClick=${() => send({ t: 'toLobby' })}>ほかのゲームをえらぶ</button>
-            </div>
-          `
-        : html`<p class="muted">ホストが次のゲームを選ぶのを待っています…</p>`}
+      ${hostButtons}
     </section>
   `;
 }

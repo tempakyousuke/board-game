@@ -53,7 +53,12 @@ for (const game of Object.values(GAMES)) {
         const { result } = state;
         assert.equal(result.scores.length, n);
         assert.equal(result.places.length, n);
-        assert.ok(result.winners.length >= 1);
+        if (result.coop) {
+          // 協力ゲームは全員で勝つか、全員で負けるか。
+          assert.equal(result.winners.length, result.success ? n : 0);
+        } else {
+          assert.ok(result.winners.length >= 1);
+        }
         for (const w of result.winners) assert.equal(result.places[w], 1);
         assert.deepEqual(game.pending(state), []);
       }
