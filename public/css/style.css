@@ -3003,7 +3003,7 @@ button.game-card-main {
   z-index: 2;
 }
 .nr-lane.is-moved .nr-racer {
-  animation: wobble 0.4s 2;
+  animation: nr-wobble 0.4s 2;
 }
 .nr-ghost {
   opacity: 0.45;
@@ -3136,15 +3136,15 @@ button.game-card-main {
 .hk-cell.is-fresh {
   animation: pop 0.4s;
 }
-.hk-cell.is-ghost {
+.hk-board .hk-cell.is-ghost {
   background: #d9f5c9;
   box-shadow: inset 0 0 0 3px var(--green-deep);
 }
-.hk-cell.is-bad {
+.hk-board .hk-cell.is-bad {
   background: #f7c9c9;
   box-shadow: inset 0 0 0 3px var(--danger);
 }
-.hk-cell.is-chosen {
+.hk-board .hk-cell.is-chosen {
   background: #fff3c9;
   box-shadow: inset 0 0 0 3px #e8a100;
 }
@@ -3440,6 +3440,15 @@ button.game-card-main {
   from {
     transform: translateY(-30%) scale(1.25);
     opacity: 0.3;
+  }
+}
+/* 位置合わせの translate を保ったまま、ゆらす。 */
+@keyframes nr-wobble {
+  25% {
+    transform: translate(-50%, -50%) rotate(-10deg);
+  }
+  75% {
+    transform: translate(-50%, -50%) rotate(10deg);
   }
 }
 @keyframes wobble {
