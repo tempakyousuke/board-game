@@ -138,6 +138,31 @@ export function lightMap(size, cells, n) {
   return { counts, owner, scores };
 }
 
+/** 灯台から伸びる光の筋 (描画用)。1マスも照らしていない方向は含めない。 */
+export function beams(size, cells) {
+  const out = [];
+  for (let i = 0; i < cells.length; i++) {
+    const cell = cells[i];
+    if (!cell || cell === 'rock') continue;
+    const dirs = cell.k === 'plus' ? ORTH : DIAG;
+    const r0 = Math.floor(i / size);
+    const c0 = i % size;
+    for (const [dr, dc] of dirs) {
+      let r = r0;
+      let c = c0;
+      while (true) {
+        const rr = r + dr;
+        const cc = c + dc;
+        if (rr < 0 || cc < 0 || rr >= size || cc >= size || cells[rr * size + cc] !== null) break;
+        r = rr;
+        c = cc;
+      }
+      if (r !== r0 || c !== c0) out.push({ o: cell.o, r1: r0, c1: c0, r2: r, c2: c });
+    }
+  }
+  return out;
+}
+
 function checkPlacement(state, seat, action) {
   assert(action && action.type === 'place', '不明な操作です');
   assert(seat >= 0 && seat < state.n, '観戦中は操作できません');

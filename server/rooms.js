@@ -97,6 +97,7 @@ export class Room {
     this.hostTimer = null;
     this.emptySince = manager.now();
     this.botCount = 0;
+    this.gameCount = 0;
   }
 
   // ---- 参加・退出 -------------------------------------------------------
@@ -412,6 +413,7 @@ export class Room {
     this.prune();
     this.game = {
       id: this.gameId,
+      no: ++this.gameCount, // 何戦目か。画面側が再戦を見分けるのに使う
       seats,
       state: game.setup({ n: seats.length, rng: this.manager.rng }),
       since: this.manager.now(),
@@ -508,6 +510,7 @@ export class Room {
         const seat = this.game.seats.indexOf(p.id);
         gameMsg = {
           id: this.game.id,
+          no: this.game.no,
           seats: this.game.seats,
           seat,
           pending,
