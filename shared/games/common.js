@@ -52,3 +52,22 @@ export function makeResult(scores, { higherIsBetter = true, unit = '点', detail
     detail,
   };
 }
+
+/**
+ * 全員で協力するゲームの結果。勝ち負けは全員共通。
+ * @param {number} n 人数
+ * @param {{ success: boolean, score: number, unit?: string, headline: string, stars?: number, detail?: object }} outcome
+ */
+export function makeTeamResult(n, { success, score, unit = '点', headline, stars = 0, detail = null }) {
+  return {
+    coop: true,
+    success,
+    headline,
+    stars,
+    scores: new Array(n).fill(score),
+    places: new Array(n).fill(1),
+    winners: success ? Array.from({ length: n }, (_, i) => i) : [],
+    unit,
+    detail,
+  };
+}

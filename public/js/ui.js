@@ -76,6 +76,8 @@ export const GAME_ART = {
   gottsunko: { bg: 'linear-gradient(160deg,#f4c95d,#e59a3c)', fg: '#4a2c0a', icons: ['💎', '💥'] },
   dokan: { bg: 'linear-gradient(160deg,#4a3f5c,#2a2236)', fg: '#fff', icons: ['💣', '🔥'] },
   korokoro: { bg: 'linear-gradient(160deg,#8fd16f,#4aa85a)', fg: '#123b1a', icons: ['🎲', '🌷'] },
+  bento: { bg: 'linear-gradient(160deg,#f9b27c,#e8704a)', fg: '#4a1d0a', icons: ['🍱', '🍤'] },
+  tataki: { bg: 'linear-gradient(160deg,#c94f4f,#8c2f39)', fg: '#fff', icons: ['🔔', '🏺'] },
 };
 
 export function GameCard({ meta, selected = false, onSelect, onRules, compact = false }) {

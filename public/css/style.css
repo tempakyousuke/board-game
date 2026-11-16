@@ -1952,6 +1952,471 @@ button.game-card-main {
   color: var(--ink-soft);
 }
 
+/* ---- つめつめ弁当 ------------------------------------------------------ */
+
+.bt-table {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bt-others {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.bt-mini {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--paper);
+  border: 2px solid var(--line);
+  border-top: 5px solid var(--c);
+  border-radius: 12px;
+  padding: 4px 6px 6px;
+}
+.bt-mini-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.bt-mini-name {
+  flex: 1;
+  max-width: 58px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bt-mini-head b {
+  font-size: 0.95rem;
+}
+.bt-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 28px);
+  gap: 2px;
+  justify-content: center;
+}
+.bt-mini-cell {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: #f3e7cf;
+  border-radius: 6px;
+  font-size: 16px;
+  line-height: 1;
+}
+.bt-mini-cell.is-fresh,
+.bt-cell.is-fresh .food {
+  animation: pop 0.45s;
+}
+.bt-mini-cell.is-fresh {
+  background: #ffe9a8;
+}
+.bt-mini-state {
+  position: absolute;
+  top: -11px;
+  right: -6px;
+  font-size: 0.85rem;
+}
+.bt-mine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.bt-box {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  width: min(100%, 300px, max(210px, calc(100dvh - 520px)));
+  padding: 10px;
+  border-radius: 22px;
+  background: #3a2a22;
+  box-shadow:
+    0 0 0 4px var(--c),
+    var(--shadow);
+  container-type: inline-size;
+}
+.bt-cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 0;
+  padding: 0;
+  border-radius: 12px;
+  background: #fff8e7;
+  font-size: 2.4rem;
+  font-size: 19cqw;
+  line-height: 1;
+}
+.bt-cell:disabled {
+  cursor: default;
+}
+.bt-cell.is-open {
+  background: #fffdf6;
+  box-shadow: inset 0 0 0 2px #e6cfa3;
+  cursor: pointer;
+}
+.bt-cell.is-ghost {
+  box-shadow: inset 0 0 0 4px var(--accent);
+  background: #fff0ea;
+}
+.bt-cell.is-ghost .food {
+  opacity: 0.65;
+  animation: pulse 0.9s infinite;
+}
+.bt-parts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+}
+.bt-part {
+  background: #f4ecdb;
+  border-radius: 999px;
+  padding: 1px 10px;
+  font-size: 0.85rem;
+}
+.bt-part.is-bad {
+  background: #fde3e4;
+}
+.bt-hand {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+.bt-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0 4px;
+  border-radius: 12px;
+  border: 2px solid var(--line-deep);
+  background: #fff;
+  box-shadow: 0 3px 0 var(--line-deep);
+  font-size: 1.7rem;
+  line-height: 1.15;
+  cursor: pointer;
+  transition: transform 0.08s;
+  min-width: 0;
+}
+.bt-tile small {
+  font-size: 0.56rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+}
+.bt-tile.is-on {
+  border-color: var(--accent-deep);
+  background: #fff0ea;
+  box-shadow: 0 6px 0 var(--accent-deep);
+  transform: translateY(-4px);
+}
+.bt-rule {
+  text-align: center;
+  font-size: 0.86rem;
+  background: #f4ecdb;
+  border-radius: 10px;
+  padding: 6px 10px;
+  min-height: 2.6em;
+}
+.bt-rule b {
+  margin-right: 6px;
+}
+.bt-gain {
+  display: inline-block;
+  margin-left: 8px;
+  font-weight: 800;
+  color: var(--green-deep);
+}
+.bt-gain.is-bad {
+  color: var(--danger);
+}
+.bt-pass {
+  text-align: center;
+  font-size: 0.8rem;
+}
+.bt-foods {
+  list-style: none !important;
+  margin: 0;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.86rem;
+}
+.bt-foods li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #faf3e3;
+  border-radius: 10px;
+  padding: 4px 10px;
+}
+.bt-foods .food {
+  font-size: 1.5rem;
+  flex: none;
+}
+.bt-foods li span:last-child {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+/* ---- たたき売り！ ------------------------------------------------------ */
+
+.tk-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(170deg, #a43a43, #6f2330);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 14px 16px 18px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.tk-lot {
+  align-self: stretch;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  opacity: 0.95;
+}
+.tk-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.tk-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fffdf8;
+  color: var(--ink);
+  border-radius: 16px;
+  padding: 10px 18px 10px 12px;
+  min-width: min(100%, 280px);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+}
+.tk-emoji {
+  font-size: 3.4rem;
+  line-height: 1;
+}
+.tk-emoji.is-lucky {
+  animation: wobble 1.2s infinite;
+}
+.tk-item-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+.tk-item-text > b {
+  font-size: 1.15rem;
+}
+.tk-item-text > span {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.tk-value strong {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+.tk-value s {
+  opacity: 0.6;
+}
+.tk-fav {
+  display: inline-block;
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: #ffd9e0;
+  color: #b0263f;
+  border-radius: 999px;
+  padding: 0 8px;
+  vertical-align: middle;
+}
+.tk-price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.tk-price-num {
+  font-size: 4.2rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffd166;
+  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+  animation: price-drop 0.25s;
+}
+.tk-price-unit {
+  font-weight: 700;
+  opacity: 0.9;
+}
+.tk-bar {
+  align-self: stretch;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+.tk-bar i {
+  display: block;
+  height: 100%;
+  background: #ffd166;
+  border-radius: 999px;
+  transform-origin: left;
+  animation: drain linear forwards;
+}
+.tk-bar i.is-full {
+  animation: none;
+  opacity: 0.5;
+}
+.tk-stage.is-intro .tk-price-num {
+  opacity: 0.55;
+}
+.tk-sold {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 42px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 14px;
+  padding: 6px 12px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-align: center;
+  animation: pop 0.3s;
+}
+.tk-sold.is-unsold {
+  color: #f0d9dc;
+}
+.tk-stage.is-sold .tk-price-num {
+  animation: none;
+}
+
+.tk-buy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  padding: 12px;
+  border-radius: 18px;
+  border: 3px solid #a82828;
+  background: #e5484d;
+  color: #fff;
+  box-shadow: 0 6px 0 #a82828;
+  cursor: pointer;
+  line-height: 1.2;
+  touch-action: manipulation;
+  user-select: none;
+}
+.tk-buy b {
+  font-size: 2rem;
+}
+.tk-buy small {
+  font-size: 0.85rem;
+  opacity: 0.95;
+}
+.tk-buy:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #a82828;
+}
+.tk-buy:disabled {
+  background: #c9b9ad;
+  border-color: #a8998d;
+  box-shadow: 0 6px 0 #a8998d;
+  cursor: not-allowed;
+}
+
+.tk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  background: #f4ecdb;
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 0 5px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.tk-chip b {
+  font-size: 0.8rem;
+}
+.tk-chip small {
+  font-size: 0.6rem;
+}
+.tk-chip.is-fav {
+  background: #ffd9e0;
+  box-shadow: inset 0 0 0 1.5px #e58a9b;
+}
+.tk-chip.is-lucky {
+  background: #fff3c9;
+}
+.tk-table {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.tk-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #faf3e3;
+  border-radius: 12px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  min-height: 40px;
+}
+.tk-row.is-me {
+  box-shadow: inset 0 0 0 2px var(--line-deep);
+  background: #fff;
+}
+.tk-row-fav,
+.tk-row-coins {
+  flex: none;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.tk-row-fav {
+  color: #b0263f;
+}
+.tk-row-items {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-width: 0;
+}
+.tk-row-set {
+  flex: none;
+  font-size: 0.7rem;
+  font-weight: 800;
+  background: #ffe39a;
+  border-radius: 999px;
+  padding: 0 8px;
+}
+.tk-note {
+  font-size: 0.78rem;
+  text-align: center;
+}
+
 /* ---- アニメーション ---------------------------------------------------- */
 
 @keyframes spin {
@@ -2078,6 +2543,28 @@ button.game-card-main {
       inset 0 -3px 0 rgba(0, 0, 0, 0.2),
       inset 0 3px 0 rgba(255, 255, 255, 0.3),
       0 0 12px 3px #ffd166;
+  }
+}
+@keyframes drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+@keyframes price-drop {
+  from {
+    transform: translateY(-30%) scale(1.25);
+    opacity: 0.3;
+  }
+}
+@keyframes wobble {
+  25% {
+    transform: rotate(-8deg);
+  }
+  75% {
+    transform: rotate(8deg);
   }
 }
 @keyframes glow-open {

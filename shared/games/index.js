@@ -5,6 +5,8 @@ import * as toudai from './toudai.js';
 import * as gottsunko from './gottsunko.js';
 import * as dokan from './dokan.js';
 import * as korokoro from './korokoro.js';
+import * as bento from './bento.js';
+import * as tataki from './tataki.js';
 
-export const GAMES = { toudai, gottsunko, dokan, korokoro };
+export const GAMES = { toudai, gottsunko, dokan, korokoro, bento, tataki };
 export const GAME_LIST = Object.values(GAMES).map((g) => g.meta);
