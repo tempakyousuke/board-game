@@ -1,0 +1,21 @@
+{
+  "name": "bodoge-hiroba",
+  "version": "1.0.0",
+  "description": "友達とオリジナルのボードゲームを遊べるオンライン卓",
+  "private": true,
+  "type": "module",
+  "main": "server/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^5.3.0",
+    "htm": "^3.1.1",
+    "ws": "^8.23.0"
+  }
+}
