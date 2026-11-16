@@ -82,6 +82,9 @@ function ResultCard({ snap, players, send }) {
   const iWon = result.winners.includes(game.seat);
   const winnerNames = result.winners.map((s) => players[s].name).join(' さん・');
 
+  // 複数人が1位のとき: チーム戦なら「あなたたち」、個人戦なら同率。
+  const winTitle = result.winners.length === 1 ? 'あなたの勝ち！' : result.roles ? 'あなたたちの勝ち！' : '同率1位！';
+
   const hostButtons = isHost
     ? html`
         <div class="row">
@@ -105,7 +108,8 @@ function ResultCard({ snap, players, send }) {
 
   return html`
     <section class="result">
-      <h2>${iWon ? '🎉 あなたの勝ち！' : `🏆 ${winnerNames} さんの勝ち！`}</h2>
+      <h2>${iWon ? `🎉 ${winTitle}` : `🏆 ${winnerNames} さんの勝ち！`}</h2>
+      ${result.headline && html`<p class="result-headline">${result.headline}</p>`}
       <ol class="result-list">
         ${order.map(
           (s) => html`
@@ -113,7 +117,7 @@ function ResultCard({ snap, players, send }) {
               <span class="result-place">${medal(result.places[s])}</span>
               <${Avatar} player=${players[s]} size="sm" />
               <span class="result-name">${players[s].name}</span>
-              <span class="result-score"><b>${result.scores[s]}</b> ${result.unit}</span>
+              <span class="result-score">${result.roles ? result.roles[s] : html`<b>${result.scores[s]}</b> ${result.unit}`}</span>
             </li>
           `,
         )}

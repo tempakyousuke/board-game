@@ -2638,6 +2638,221 @@ button.game-card-main {
   font-weight: 700;
 }
 
+/* ---- かくれんぼ忍者 ---------------------------------------------------- */
+
+.nj-board {
+  gap: 4px;
+  background: #1c2238;
+}
+.room {
+  background: #3b4666;
+  border-radius: 8px;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.22);
+}
+.room.is-possible {
+  background: #6a4f9e;
+}
+.room.is-open {
+  cursor: pointer;
+  box-shadow:
+    inset 0 -4px 0 rgba(0, 0, 0, 0.22),
+    inset 0 0 0 3px rgba(255, 255, 255, 0.8);
+}
+.room.is-target {
+  box-shadow: inset 0 0 0 5px #ffd166;
+}
+.room.is-smoke {
+  background: #8b93a8;
+}
+.nj-maybe {
+  position: absolute;
+  top: 4%;
+  right: 8%;
+  font-size: calc(100cqw / var(--n) * 0.26);
+  font-weight: 800;
+  color: #e3d4ff;
+  opacity: 0.9;
+}
+.nj-foot {
+  font-size: calc(100cqw / var(--n) * 0.42);
+  filter: drop-shadow(0 0 4px #fff);
+}
+.nj-foot.is-age1 {
+  opacity: 0.5;
+  filter: none;
+}
+.nj-foot.is-age2 {
+  opacity: 0.25;
+  filter: none;
+}
+.nj-smoke {
+  position: absolute;
+  font-size: calc(100cqw / var(--n) * 0.5);
+  opacity: 0.85;
+}
+.nj-trail,
+.nj-pieces {
+  position: absolute;
+  inset: 6px;
+  width: calc(100% - 12px);
+  height: calc(100% - 12px);
+  pointer-events: none;
+}
+.nj-trail polyline {
+  fill: none;
+  stroke: #ffd166;
+  stroke-width: 0.07;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 0.01 0.16;
+  opacity: 0.9;
+}
+.nj-piece {
+  position: absolute;
+  width: calc(100% / var(--n));
+  height: calc(100% / var(--n));
+  display: grid;
+  place-items: center;
+  transition:
+    left 0.45s cubic-bezier(0.3, 1.2, 0.5, 1),
+    top 0.45s cubic-bezier(0.3, 1.2, 0.5, 1);
+  z-index: 2;
+}
+.nj-token {
+  width: 74%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--c);
+  border: 3px solid #fff;
+  font-size: calc(100cqw / var(--n) * 0.4);
+  line-height: 1;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+.nj-ninja {
+  z-index: 3;
+}
+.nj-ninja .nj-token {
+  background: #14182a;
+  border-color: #ffd166;
+  box-shadow:
+    0 3px 0 rgba(0, 0, 0, 0.35),
+    0 0 12px 2px rgba(255, 209, 102, 0.6);
+}
+.nj-ninja.is-caught .nj-token {
+  animation: shake 0.5s 2;
+}
+.nj-name {
+  position: absolute;
+  right: 4%;
+  bottom: 4%;
+  width: 1.5em;
+  height: 1.5em;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ink);
+  font-style: normal;
+  font-weight: 800;
+  font-size: calc(100cqw / var(--n) * 0.17);
+  box-shadow: 0 0 0 2px var(--c);
+}
+.nj-guard.is-done .nj-token {
+  filter: grayscale(0.55);
+  opacity: 0.8;
+}
+.nj-guard.is-active .nj-token {
+  box-shadow:
+    0 3px 0 rgba(0, 0, 0, 0.35),
+    0 0 0 4px #ffd166;
+}
+.nj-flash {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 38%;
+  z-index: 6;
+  text-align: center;
+  font-weight: 800;
+  font-size: 1.15rem;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--ink);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  animation: pop 0.35s;
+  pointer-events: none;
+}
+.nj-flash.is-caught {
+  background: #ffe39a;
+}
+
+.nj-meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.86rem;
+}
+.nj-role {
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 2px 12px;
+  background: #e1e8ff;
+}
+.nj-role.is-ninja {
+  background: #1c2238;
+  color: #ffd166;
+}
+.nj-night {
+  flex: 1;
+  display: flex;
+  gap: 2px;
+  min-width: 90px;
+}
+.nj-night i {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: #3d4a6b;
+}
+.nj-night i.is-past {
+  background: #d9cdb6;
+}
+.nj-night i.is-now {
+  background: #ffd166;
+  box-shadow: 0 0 0 2px #fff0c7;
+}
+.nj-left {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.nj-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  border-top: 2px dashed var(--line);
+  padding-top: 8px;
+}
+.nj-key {
+  display: inline-grid;
+  place-items: center;
+  width: 1.7em;
+  height: 1.7em;
+  border-radius: 6px;
+  background: #3b4666;
+  color: #fff;
+  margin-right: 6px;
+  font-size: 0.85em;
+}
+.nj-key.is-possible {
+  background: #6a4f9e;
+}
+
 /* ---- アニメーション ---------------------------------------------------- */
 
 @keyframes spin {
