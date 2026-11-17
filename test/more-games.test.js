@@ -319,3 +319,56 @@ test('hatake: 1人でも最後まで遊べて、称号がつく', () => {
   assert.equal(state.result.scores.length, 1);
   assert.match(state.result.headline, /^\d+点 — /);
 });
+
+// ---- どっち派？あてっこ ----------------------------------------------------
+
+test('docchi: 当てた人と当ててもらえた人の両方に点が入り、答えは答え合わせまで見えない', () => {
+  const game = GAMES.docchi;
+  const rng = mulberry32(41);
+  const state = game.setup({ n: 3, rng });
+  assert.equal(new Set(state.questions).size, state.maxRounds, 'お題はかぶらない');
+
+  // 席0: 自分は A。席1 は A、席2 は B と予想。
+  game.act(state, 0, { type: 'answer', own: 0, guesses: [null, 0, 1] }, rng);
+  assert.deepEqual(game.view(state, 0).myAnswer, { own: 0, guesses: [null, 0, 1] });
+  assert.equal(game.view(state, 1).myAnswer, null, '他人の答えは見えない');
+  assert.equal(game.view(state, 1).reveal, null);
+  assert.deepEqual(game.view(state, 1).submitted, [true, false, false]);
+
+  // 自分以外の全員ぶんを予想していないと出せない。
+  assert.throws(() => game.act(state, 1, { type: 'answer', own: 0, guesses: [1, null, null] }, rng), GameError);
+  assert.throws(() => game.act(state, 1, { type: 'answer', own: 2, guesses: [1, null, 0] }, rng), GameError);
+
+  game.act(state, 1, { type: 'answer', own: 0, guesses: [1, null, 1] }, rng); // 席0=B (はずれ), 席2=B (あたり)
+  game.act(state, 2, { type: 'answer', own: 1, guesses: [0, 1, null] }, rng); // 席0=A (あたり), 席1=B (はずれ)
+  assert.equal(state.phase, 'reveal');
+  // あたり: 0→1, 0→2, 1→2, 2→0 の4組。点は当てた側と当てられた側の両方に入る。
+  assert.deepEqual(state.reveal.gained, [2 + 1, 0 + 1 + 1, 1 + 2]);
+  assert.deepEqual(state.points, [3, 2, 3]);
+  assert.equal(state.hits[0][1], 1);
+  assert.equal(state.hits[1][0], 0);
+  assert.deepEqual(game.view(state, -1).reveal.own, [0, 0, 1], '答え合わせは全員に見える');
+
+  assert.throws(() => game.act(state, 0, { type: 'answer', own: 0, guesses: [null, 0, 1] }, rng), GameError);
+  game.act(state, 2, { type: 'next' }, rng);
+  assert.equal(state.round, 2);
+  assert.equal(state.phase, 'answer');
+  assert.deepEqual(game.pending(state), [0, 1, 2]);
+});
+
+test('docchi: 最後に、いちばん通じ合っていた2人がわかる', () => {
+  const game = GAMES.docchi;
+  const rng = mulberry32(42);
+  const state = game.setup({ n: 3, rng });
+  // 席0 と席1 はいつもおたがいを当て、席2 のことは外す。
+  for (let round = 0; round < state.maxRounds; round++) {
+    game.act(state, 0, { type: 'answer', own: 0, guesses: [null, 0, 0] }, rng);
+    game.act(state, 1, { type: 'answer', own: 0, guesses: [0, null, 0] }, rng);
+    game.act(state, 2, { type: 'answer', own: 1, guesses: [1, 1, null] }, rng);
+    game.act(state, 0, { type: 'next' }, rng);
+  }
+  assert.equal(state.over, true);
+  assert.deepEqual(state.result.detail.bestPair.pair, [0, 1]);
+  assert.equal(state.result.detail.bestPair.total, state.maxRounds * 2);
+  assert.deepEqual(state.result.winners, [0, 1]);
+});

@@ -3309,6 +3309,168 @@ button.game-card-main {
   font-size: 1.1rem;
 }
 
+/* ---- どっち派？あてっこ ------------------------------------------------ */
+
+.dc-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(160deg, #ffe3ec, #ffd0de);
+  border: 2px solid #f5a8bf;
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.dc-round {
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: #fff;
+  border-radius: 999px;
+  padding: 1px 12px;
+}
+.dc-card h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.dc-options {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dc-option {
+  font-weight: 800;
+  font-size: 1.05rem;
+  border-radius: 14px;
+  padding: 8px 14px;
+  color: #fff;
+}
+.dc-option.is-a,
+.dc-cell.is-a {
+  background: #3e63dd;
+  color: #fff;
+}
+.dc-option.is-b,
+.dc-cell.is-b {
+  background: #e8704a;
+  color: #fff;
+}
+.dc-vs {
+  font-weight: 800;
+  color: #b0486a;
+}
+.dc-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dc-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px 84px;
+  gap: 6px;
+  align-items: stretch;
+}
+.dc-row.is-me .dc-who {
+  background: #fff3c9;
+}
+.dc-who {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  background: #faf3e3;
+  border-radius: 12px;
+  padding: 5px 10px;
+  min-width: 0;
+  font-size: 0.9rem;
+}
+.dc-head .dc-who {
+  background: none;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.dc-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dc-cell {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  border-radius: 12px;
+  background: #f4ecdb;
+  font-size: 1.3rem;
+  line-height: 1.2;
+  text-align: center;
+}
+.dc-head .dc-cell {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 4px;
+  min-height: 0;
+}
+.dc-pick {
+  border: 2px solid var(--line-deep);
+  background: #fff;
+  cursor: pointer;
+  color: inherit;
+}
+.dc-pick.is-on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+.dc-pick:disabled {
+  cursor: default;
+}
+.dc-cell.is-actual {
+  background: var(--ink);
+  color: #fff;
+}
+.dc-cell.is-guessed:not(.is-actual) {
+  box-shadow: inset 0 0 0 3px #e0a3a3;
+}
+.dc-cell.is-guessed.is-actual {
+  box-shadow: inset 0 0 0 3px #ffd166;
+}
+.dc-gain {
+  font-size: 0.95rem;
+  color: var(--green-deep);
+}
+.dc-mark {
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 0 8px;
+}
+.dc-mark.is-hit {
+  background: #dcf5e1;
+  color: var(--green-deep);
+}
+.dc-mark.is-miss {
+  background: #fde3e4;
+  color: var(--danger);
+}
+.dc-note {
+  text-align: center;
+  font-size: 0.8rem;
+}
+.dc-best {
+  text-align: center;
+  background: #ffe3ec;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 0.92rem;
+}
+
 /* ---- アニメーション ---------------------------------------------------- */
 
 @keyframes spin {
