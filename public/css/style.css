@@ -1988,6 +1988,13 @@ button.game-card-main {
 .kk-risk.is-high b {
   color: var(--danger);
 }
+.kk-first {
+  text-align: center;
+  font-size: 0.82rem;
+  background: #fff3c9;
+  border-radius: 10px;
+  padding: 5px 10px;
+}
 .kk-legend {
   border-top: 2px dashed var(--line);
   padding-top: 8px;

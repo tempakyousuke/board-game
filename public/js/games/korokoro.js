@@ -53,14 +53,18 @@ function Board({ view, seat, players, act }) {
   const bloomed = new Set(event?.type === 'bank' ? event.cells : []);
   const lost = new Set(event?.type === 'bust' ? event.lost : []);
   const riskPercent = view.risk === null ? null : Math.round(view.risk * 100);
+  // いまやめたら花がいくつになるか。目標に届いていれば、やめた瞬間に勝ち。
+  const wouldHave = active >= 0 ? view.flowers[active] + view.temp.length : 0;
+  const canWin = !view.over && view.temp.length > 0 && wouldHave >= view.target;
+  const firstTurn = !view.over && view.cap < view.size;
   const name = (s) => players[s]?.name ?? '?';
 
   let status;
-  if (view.over) status = 'ガーデン完成！';
+  if (view.over) status = `花が ${view.target} 個そろいました！`;
   else if (view.phase === 'place') {
     status = myTurn ? '光っているマスをタップして、種をまきましょう' : `${name(active)} さんが種をまくマスを選んでいます`;
   } else if (myTurn) {
-    status = view.temp.length === 0 ? 'あなたの番です。サイコロをふりましょう' : 'もう1回ふる？ それともやめる？';
+    status = view.temp.length === 0 ? 'あなたの番です。サイコロをふりましょう' : canWin ? 'やめれば花が ' + wouldHave + ' 個。あなたの勝ちです！' : 'もう1回ふる？ それともやめる？';
   } else status = `${name(active)} さんの番です`;
 
   return html`
@@ -137,7 +141,7 @@ function Board({ view, seat, players, act }) {
                 : html`<span class="die-wait">🎲</span>`}
             </div>
             <div class="kk-turn-info">
-              <span>この番にまいた種 <b>${view.temp.length}</b></span>
+              <span>この番にまいた種 <b>${view.temp.length}</b>${firstTurn ? ` / ${view.cap} つまで` : ''}</span>
               ${riskPercent !== null &&
               html`<span class=${cx('kk-risk', riskPercent >= 50 ? 'is-high' : riskPercent >= 25 ? 'is-mid' : 'is-low')}>
                 次にふって失敗する確率 <b>${riskPercent}%</b>
@@ -154,12 +158,14 @@ function Board({ view, seat, players, act }) {
               🎲 ${view.temp.length === 0 ? 'サイコロをふる' : 'もう1回ふる'}
             </button>
             <button class="btn btn-safe" disabled=${view.temp.length === 0} onClick=${() => act({ type: 'bank' })}>
-              🌷 やめて花にする
+              🌷 ${canWin ? 'やめて勝つ！' : 'やめて花にする'}
             </button>
           </div>
         `}
 
-        <p class="kk-legend">得点 = 花の数（✿）+ いちばん大きなつながりの花の数</p>
+        ${firstTurn &&
+        html`<p class="kk-first">最初の番だけ、まける種は ${name(active)} さんが ${view.cap} つまで（先に動く人ほど少なくなります）</p>`}
+        <p class="kk-legend">先に花を ${view.target} 個咲かせた人の勝ち</p>
       </div>
     </div>
   `;
@@ -187,16 +193,23 @@ function Rules() {
       <p>出た目のどちらのマスにもまけなかったら失敗です。<b>この番にまいた種はすべて消えて</b>、番が終わります。</p>
       <h3>うばう</h3>
       <p>相手の花があるマスにも種をまけます。やめて花になったとき、そのマスは自分のものになります。</p>
-      <h3>得点と終了</h3>
+      <h3>勝敗</h3>
       <ul>
-        <li>得点 = <b>花の数</b> + <b>いちばん大きな「つながり」の花の数</b>（たて・よこにとなり合った自分の花のかたまり）。</li>
-        <li>ラウンド数は 2人で10、3人で7、4人で6、5人で5。スタートプレイヤーは毎ラウンド次の人に移ります。</li>
-        <li>種を6つまくと、その場で自動的に花になります。</li>
+        <li><b>先に花を 10 個</b>（5人で遊ぶときは 9 個）咲かせた人の勝ちです。</li>
+        <li>やめて花にした瞬間に数えます。届いていれば、<b>その場でゲーム終了</b>です。</li>
+        <li>うばわれると花は減ります。あと少しの人がいたら、その人の花をねらいましょう。</li>
+      </ul>
+      <h3>こまかいルール</h3>
+      <ul>
+        <li>
+          <b>最初の番だけ</b>、まける種の数に上限があります。1番目の人は 1つ、2番目の人は 2つ、3番目の人は 3つ…まで。先に動く人が得をしすぎないためのハンデです。
+        </li>
+        <li>種を6つまくと（最初の番は上限まで まくと）、その場で自動的に花になります。</li>
       </ul>
       <h3>コツ</h3>
       <ul>
         <li>画面に出る「失敗する確率」が目安。種が3つを超えるとかなり危険です。</li>
-        <li>花を固めて育てると「つながり」が大きくなります。相手の大きなつながりは、真ん中をうばって分断しましょう。</li>
+        <li>だれかがあと2〜3個まで来たら、次の番で決められてしまうかも。強気にふるか、その人からうばうか。</li>
       </ul>
     </div>
   `;
@@ -205,9 +218,9 @@ function Rules() {
 export default {
   Board,
   Rules,
-  scores: (view) => view.scores,
-  unit: '点',
-  progress: (view) => `ラウンド ${view.round} / ${view.maxRounds}`,
+  scores: (view) => view.flowers,
+  unit: '個',
+  progress: (view) => `先に ${view.target} 個で勝ち`,
   waiting: () => false,
-  extra: (view, s) => `✿${view.flowers[s]} +${view.groups[s]}`,
+  extra: (view, s) => (view.flowers[s] >= view.target ? 'ゴール！' : `あと ${view.target - view.flowers[s]} 個`),
 };

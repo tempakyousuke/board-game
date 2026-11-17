@@ -7,7 +7,7 @@ import { GAMES } from '../shared/games/index.js';
 import { GameError, makeResult } from '../shared/games/common.js';
 import { mulberry32 } from '../shared/rng.js';
 import { lightMap, turnOrder } from '../shared/games/toudai.js';
-import { optionsFor, bustChance, largestGroups, roundOrder, SIZE } from '../shared/games/korokoro.js';
+import { optionsFor, bustChance, seedCap, countFlowers, SIZE } from '../shared/games/korokoro.js';
 
 const MAX_STEPS = 5000;
 
@@ -256,43 +256,119 @@ test('korokoro: まける場所のルールと失敗の確率', () => {
   assert.ok(one > 0 && one < two && two < three, 'まくほど失敗しやすくなる');
 });
 
+/** サイコロの出目を決め打ちするための乱数。1回ふるごとに2つ使われる。 */
+function dice(...faces) {
+  const queue = faces.map((f) => (f - 1) / SIZE + 0.01);
+  return () => queue.shift();
+}
+const at = (row, col) => (row - 1) * SIZE + (col - 1);
+
 test('korokoro: 失敗すると種は消え、やめると花になる', () => {
   const game = GAMES.korokoro;
   const state = game.setup({ n: 2, rng: mulberry32(1) });
-  const seat = state.turn;
-  // 出目を固定するための乱数。1回の roll で2回呼ばれる。
-  const fixed = (faces) => {
-    const queue = faces.map((f) => (f - 1) / SIZE + 0.01);
-    return () => queue.shift();
-  };
+  const first = state.turn;
+  const second = 1 - first;
 
-  game.act(state, seat, { type: 'roll' }, fixed([3, 5]));
+  // 1番手の最初の番は、種1つまで。まいたらそのまま花になって番が終わる。
+  game.act(state, first, { type: 'roll' }, dice(3, 5));
   assert.equal(state.phase, 'place');
-  assert.throws(() => game.act(state, seat, { type: 'bank' }, fixed([])), GameError);
-  game.act(state, seat, { type: 'place', cell: 2 * SIZE + 4 }, fixed([]));
-  // 同じ行・同じ列しか出ない目 → しっぱい
-  game.act(state, seat, { type: 'roll' }, fixed([3, 3]));
-  assert.equal(state.event.type, 'bust');
-  assert.equal(state.owner.every((o) => o === -1), true);
-  assert.equal(state.turn, 1 - seat);
-
-  const other = 1 - seat;
-  game.act(state, other, { type: 'roll' }, fixed([1, 2]));
-  game.act(state, other, { type: 'place', cell: 0 * SIZE + 1 }, fixed([]));
-  game.act(state, other, { type: 'bank' }, fixed([]));
-  assert.equal(state.owner[1], other);
+  assert.throws(() => game.act(state, first, { type: 'bank' }, dice()), GameError, 'まく場所を選ぶ前にはやめられない');
+  game.act(state, first, { type: 'place', cell: at(3, 5) }, dice());
+  assert.equal(state.owner[at(3, 5)], first);
   assert.equal(state.event.type, 'bank');
-  assert.equal(state.round, 2);
-  assert.equal(state.turn, other, 'スタートプレイヤーは毎ラウンド次の人に移る');
-  assert.deepEqual(roundOrder(3, 1, 1), [1, 2, 0]);
-  assert.deepEqual(roundOrder(3, 1, 2), [2, 0, 1]);
+  assert.equal(state.turn, second);
+
+  // 2番手の最初の番は2つまで。同じ行・同じ列しか出ない目でしっぱいすると、種は消える。
+  game.act(state, second, { type: 'roll' }, dice(1, 2));
+  game.act(state, second, { type: 'place', cell: at(1, 2) }, dice());
+  assert.equal(state.turn, second, 'まだ続けられる');
+  game.act(state, second, { type: 'roll' }, dice(1, 1));
+  assert.equal(state.event.type, 'bust');
+  assert.deepEqual(state.event.lost, [at(1, 2)]);
+  assert.equal(state.owner[at(1, 2)], -1);
+  assert.equal(state.turn, first);
+
+  // 2回目の番からは、やめると言うまで続けられる。やめると花になる。
+  game.act(state, first, { type: 'roll' }, dice(4, 6));
+  game.act(state, first, { type: 'place', cell: at(4, 6) }, dice());
+  game.act(state, first, { type: 'roll' }, dice(5, 1));
+  game.act(state, first, { type: 'place', cell: at(5, 1) }, dice());
+  assert.equal(state.turn, first);
+  game.act(state, first, { type: 'bank' }, dice());
+  assert.deepEqual(countFlowers(state.owner, 2)[first], 3);
+  assert.equal(state.turn, second);
+  assert.equal(state.over, false);
 });
 
-test('korokoro: いちばん大きなつながりを数える', () => {
-  const owner = new Array(SIZE * SIZE).fill(-1);
-  for (const i of [0, 1, 2, SIZE + 2]) owner[i] = 0; // 4つつながり
-  owner[5 * SIZE + 5] = 0; // 離れた1つ
-  owner[3] = 1;
-  owner[SIZE + 3] = 1;
-  assert.deepEqual(largestGroups(owner, 2), [4, 2]);
+test('korokoro: 最初の番だけ、手番が早い人ほどまける種が少ない', () => {
+  const game = GAMES.korokoro;
+  const state = game.setup({ n: 4, rng: mulberry32(2) });
+  const order = [0, 1, 2, 3].map((k) => (state.start + k) % 4);
+  const caps = order.map((seat) => seedCap({ ...state, turn: seat }));
+  assert.deepEqual(caps, [1, 2, 3, 4]);
+  assert.equal(game.view(state, 0).cap, 1, '画面にも、いまの番の上限が届く');
+  // 一度でも番を終えた人は、ふつうどおり6つまで。
+  state.turnsTaken[order[0]] = 1;
+  assert.equal(seedCap({ ...state, turn: order[0] }), SIZE);
+
+  // 6つまいたら行も列も使い切るので、自動で花になる。
+  state.turnsTaken.fill(1);
+  const seat = state.turn;
+  const rolls = [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 1]];
+  for (const [r, c] of rolls) {
+    game.act(state, seat, { type: 'roll' }, dice(r, c));
+    game.act(state, seat, { type: 'place', cell: at(r, c) }, dice());
+  }
+  assert.equal(state.event.type, 'bank');
+  assert.equal(countFlowers(state.owner, 4)[seat], 6);
+  assert.notEqual(state.turn, seat);
+});
+
+test('korokoro: 先に目標の数の花を咲かせた人が、その場で勝つ', () => {
+  const game = GAMES.korokoro;
+  assert.equal(game.setup({ n: 2, rng: mulberry32(3) }).target, 10);
+  assert.equal(game.setup({ n: 5, rng: mulberry32(3) }).target, 9, '5人のときは9個');
+
+  const state = game.setup({ n: 2, rng: mulberry32(3) });
+  state.turnsTaken = [1, 1];
+  const me = state.turn;
+  const rival = 1 - me;
+  // 自分は 8 個、相手は 9 個持っている。
+  for (let c = 1; c <= 6; c++) state.owner[at(1, c)] = me;
+  state.owner[at(2, 1)] = me;
+  state.owner[at(2, 2)] = me;
+  for (let c = 1; c <= 6; c++) state.owner[at(6, c)] = rival;
+  for (let c = 1; c <= 3; c++) state.owner[at(5, c)] = rival;
+
+  // 相手の花にまいて 9 個。まだ種のうちは、勝ちにならない。
+  game.act(state, me, { type: 'roll' }, dice(6, 6));
+  game.act(state, me, { type: 'place', cell: at(6, 6) }, dice());
+  game.act(state, me, { type: 'roll' }, dice(3, 3));
+  game.act(state, me, { type: 'place', cell: at(3, 3) }, dice());
+  assert.equal(state.over, false, 'やめると言うまでは決まらない');
+  assert.equal(game.view(state, me).flowers[me], 8);
+
+  game.act(state, me, { type: 'bank' }, dice());
+  assert.equal(state.over, true);
+  assert.deepEqual(state.result.winners, [me]);
+  assert.equal(state.result.scores[me], 10);
+  assert.equal(state.result.scores[rival], 8, 'うばわれたぶん、相手の花は減る');
+  assert.equal(state.event.stolen.length, 1);
+  assert.deepEqual(game.pending(state), []);
+});
+
+test('korokoro: あと1個でも、しっぱいすれば勝ちにならない', () => {
+  const game = GAMES.korokoro;
+  const state = game.setup({ n: 2, rng: mulberry32(4) });
+  state.turnsTaken = [1, 1];
+  const me = state.turn;
+  for (let c = 1; c <= 6; c++) state.owner[at(1, c)] = me;
+  for (let c = 1; c <= 3; c++) state.owner[at(2, c)] = me;
+  game.act(state, me, { type: 'roll' }, dice(4, 4));
+  game.act(state, me, { type: 'place', cell: at(4, 4) }, dice());
+  game.act(state, me, { type: 'roll' }, dice(4, 4)); // 同じマスは、行も列も使用ずみ
+  assert.equal(state.event.type, 'bust');
+  assert.equal(state.over, false);
+  assert.equal(countFlowers(state.owner, 2)[me], 9);
+  assert.equal(state.turn, 1 - me);
 });
