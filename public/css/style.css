@@ -3627,6 +3627,100 @@ button.game-card-main {
   text-align: center;
 }
 
+/* ---- おはじきリング ---------------------------------------------------- */
+
+.oh-board {
+  display: block;
+  width: 100%;
+  max-width: min(540px, max(300px, calc(100dvh - 290px)));
+  margin: 0 auto;
+  /* 引っぱっているあいだに画面がスクロールしないようにする。 */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.oh-board.is-aiming {
+  cursor: grab;
+}
+.oh-table {
+  fill: #7a5536;
+  stroke: #5a3c24;
+  stroke-width: 0.03;
+}
+.oh-ring {
+  stroke: rgba(0, 0, 0, 0.2);
+  stroke-width: 0.008;
+}
+.oh-launch {
+  fill: rgba(255, 255, 255, 0.12);
+  stroke-width: 0.018;
+  stroke-dasharray: 0.05 0.035;
+}
+.oh-launch.is-turn {
+  fill: rgba(255, 255, 255, 0.45);
+}
+.oh-disc {
+  stroke: #fff;
+  stroke-width: 0.014;
+}
+.oh-ready {
+  animation: pulse 1s infinite;
+}
+.oh-aim {
+  stroke-width: 0.022;
+  stroke-dasharray: 0.06 0.045;
+  stroke-linecap: round;
+  opacity: 0.95;
+  pointer-events: none;
+}
+.oh-face {
+  font-size: 0.1px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+.oh-points {
+  font-size: 0.12px;
+  font-weight: 800;
+  fill: rgba(0, 0, 0, 0.32);
+  text-anchor: middle;
+  pointer-events: none;
+}
+.oh-scores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px;
+}
+.oh-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #faf3e3;
+  border-left: 5px solid var(--c);
+  border-radius: 10px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+.oh-score.is-turn {
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--c);
+}
+.oh-score-now {
+  flex: 1;
+}
+.oh-score-now b {
+  font-size: 1.25rem;
+}
+.oh-left {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.oh-note {
+  text-align: center;
+  font-size: 0.78rem;
+}
+
 /* ---- アニメーション ---------------------------------------------------- */
 
 @keyframes spin {

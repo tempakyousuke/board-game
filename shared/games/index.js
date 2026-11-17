@@ -13,6 +13,7 @@ import * as noronoro from './noronoro.js';
 import * as hatake from './hatake.js';
 import * as docchi from './docchi.js';
 import * as obake from './obake.js';
+import * as ohajiki from './ohajiki.js';
 
-export const GAMES = { toudai, gottsunko, dokan, korokoro, bento, tataki, hitsuji, ninja, noronoro, hatake, docchi, obake };
+export const GAMES = { toudai, gottsunko, dokan, korokoro, bento, tataki, hitsuji, ninja, noronoro, hatake, docchi, obake, ohajiki };
 export const GAME_LIST = Object.values(GAMES).map((g) => g.meta);

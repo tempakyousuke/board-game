@@ -514,8 +514,18 @@ export class Room {
         return;
       }
       this.broadcast();
-    }, this.manager.botDelay() * (GAMES[this.game.id].meta.realtime ? 0.5 : 1));
+    }, this.manager.botDelay() * this.botPace());
     this.botTimer.unref?.();
+  }
+
+  /**
+   * CPU が動くまでの間合いの倍率。リアルタイムのゲームでは短く、
+   * 動きを見せる時間が要るゲーム (meta.botDelayMs) では長くする。
+   */
+  botPace() {
+    const { realtime, botDelayMs } = GAMES[this.game.id].meta;
+    if (realtime) return 0.5;
+    return botDelayMs ? botDelayMs / 1150 : 1;
   }
 
   nextBotMove() {

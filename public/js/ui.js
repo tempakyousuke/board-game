@@ -84,6 +84,7 @@ export const GAME_ART = {
   hatake: { bg: 'linear-gradient(160deg,#c98f5a,#8a5a33)', fg: '#fff', icons: ['🥕', '🌽'] },
   docchi: { bg: 'linear-gradient(160deg,#ffb3c7,#f0719b)', fg: '#4a1028', icons: ['🤝', '❓'] },
   obake: { bg: 'linear-gradient(160deg,#7a63a8,#3b2f4a)', fg: '#fff', icons: ['👻', '🃏'] },
+  ohajiki: { bg: 'linear-gradient(160deg,#8ed0e8,#3f8fb5)', fg: '#06324a', icons: ['🎯', '💥'] },
 };
 
 /**
