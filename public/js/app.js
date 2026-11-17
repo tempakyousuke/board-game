@@ -202,7 +202,7 @@ function App() {
 
   const inGame = !!snap?.game && snap.room.phase !== 'lobby';
   return html`
-    <header class=${cx('topbar', inGame && 'topbar-compact')}>
+    <header class=${cx('topbar', inGame && 'topbar-compact', snap && 'has-room')}>
       <a
         class="logo"
         href="/"
@@ -214,7 +214,7 @@ function App() {
         }}
       >
         <img src="/favicon.svg" alt="" width="28" height="28" />
-        <span>ボドゲひろば</span>
+        <span class="logo-text">ボドゲひろば</span>
       </a>
       <div class="topbar-room">
         <button

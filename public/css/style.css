@@ -98,6 +98,11 @@ b {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: none;
+}
+.topbar-room .btn,
+.logo-text {
+  white-space: nowrap;
 }
 
 .sound-btn {
@@ -3944,6 +3949,10 @@ button.game-card-main {
     padding: 12px 12px 48px;
   }
   .btn-label {
+    display: none;
+  }
+  /* ルームにいるあいだは、コードや退出ボタンのぶん場所が足りないので、ロゴは絵だけにする。 */
+  .topbar.has-room .logo-text {
     display: none;
   }
   .start-bar {
