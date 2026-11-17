@@ -4,7 +4,8 @@
 // ・各自、手札から1枚を同時に出す。先頭から時計回りに近い順に、1枚ずつ置く。
 // ・前のカードから 10 以内なら「つながる」。列が1枚のびる。
 // ・届かなければ、それまでの列を全部引き取る (1枚 −1点)。そのカードが新しい列の最初になる。
-// ・その番の最後に置かれたカードがつながっていたら、その人に +2点 (いちばん先まで進んだごほうび)。
+// ・その番の最後に置かれたカードがつながっていたら、その人にごほうび (いちばん先まで進んだ人)。
+//   ごほうびは人数と同じ点数 (4人なら +4点)。
 // ・手札を出し切ったら1ラウンド終了。2ラウンドの合計点が高い人の勝ち。
 
 import { assert, makeResult } from './common.js';
@@ -27,7 +28,11 @@ export const RING = 60;
 export const REACH = 10;
 export const HAND = 8;
 export const ROUNDS = 2;
-export const LEAD_BONUS = 2;
+// いちばん先まで進んだ人のごほうび。人数と同じ点数にしている。
+// 人数が増えると列が長くなって失点が大きくなり、ごほうびをもらえる回数は減る。
+// 固定の +2点だと、6人では点差のうち加点が占める割合が 3% しかなかった
+// (CPU 同士の試算。人数と同じ点数にすると、2〜6人で 18〜32% になる)。
+export const BONUS_BY_PLAYERS = { 2: 2, 3: 3, 4: 4, 5: 5, 6: 6 };
 // 出そろったカードを1枚ずつ置いて見せる時間 (サーバーの時計で次へ進む)。
 export const REVEAL_LEAD_MS = 600;
 export const REVEAL_STEP_MS = 850;
@@ -52,6 +57,7 @@ function deal(state, rng) {
 export function setup({ n, rng }) {
   const state = {
     n,
+    bonus: BONUS_BY_PLAYERS[n],
     round: 1,
     maxRounds: ROUNDS,
     turn: 1,
@@ -148,8 +154,8 @@ export function tick(state) {
   }
   if (leader >= 0) {
     state.leads[leader]++;
-    state.points[leader] += LEAD_BONUS;
-    state.roundPoints[leader] += LEAD_BONUS;
+    state.points[leader] += state.bonus;
+    state.roundPoints[leader] += state.bonus;
   }
   state.pile = after;
   delete state.last.after;
@@ -180,7 +186,7 @@ export function view(state, seat) {
     n: state.n,
     ring: RING,
     reach: REACH,
-    bonus: LEAD_BONUS,
+    bonus: state.bonus,
     round: state.round,
     maxRounds: state.maxRounds,
     turn: state.turn,
@@ -260,7 +266,7 @@ export function bot(state, seat, rng) {
       cards[seat] = card;
       const { steps, pile, leader } = resolveTurn(state.pile, cards);
       const mine = steps.find((step) => step.seat === seat);
-      total += (leader === seat ? LEAD_BONUS : 0) - mine.took;
+      total += (leader === seat ? state.bonus : 0) - mine.took;
       const newTop = pile[pile.length - 1].card;
       const alive = hand.filter((other) => other !== card && distance(newTop, other) <= REACH).length;
       total += KEEP * Math.min(2, alive);

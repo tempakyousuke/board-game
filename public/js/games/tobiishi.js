@@ -1,7 +1,7 @@
 // ぐるぐるとびいしの画面。
 
 import { html, useState, useEffect, cx } from '../lib.js';
-import { RING, REACH, HAND, ROUNDS, LEAD_BONUS, REVEAL_LEAD_MS, REVEAL_STEP_MS, distance } from '/shared/games/tobiishi.js';
+import { RING, REACH, HAND, ROUNDS, BONUS_BY_PLAYERS, REVEAL_LEAD_MS, REVEAL_STEP_MS, distance } from '/shared/games/tobiishi.js';
 import { Avatar, paletteOf } from '../ui.js';
 import { play, useChanged } from '../sound.js';
 import { useReplay } from '../replay.js';
@@ -170,7 +170,7 @@ function Board({ view, seat, players, act }) {
             html`<div class="tb-step is-lead">
               <${Avatar} player=${players[view.last.leader]} size="xs" />
               <span>いちばん先まで進んだ</span>
-              <i class="tb-gain">+${LEAD_BONUS}点</i>
+              <i class="tb-gain">+${view.bonus}点</i>
             </div>`}
           </div>
         `}
@@ -236,7 +236,7 @@ function Board({ view, seat, players, act }) {
         `}
 
         <p class="tb-legend">
-          届かなかった人は列を全部引き取ります（1枚 −1点）。その番でいちばん先まで進んだ人に +${LEAD_BONUS}点。
+          届かなかった人は列を全部引き取ります（1枚 −1点）。その番でいちばん先まで進んだ人に +${view.bonus}点（人数と同じ点数）。
         </p>
       </div>
     </div>
@@ -265,11 +265,14 @@ function Rules() {
       </ol>
       <h3>ごほうび</h3>
       <p>
-        その番で<b>最後に置かれたカードがつながっていたら</b>、その人に <b>+${LEAD_BONUS}点</b>。いちばん先まで進んだごほうびです。最後のカードが届かなかった番は、だれももらえません。
+        その番で<b>最後に置かれたカードがつながっていたら</b>、その人にごほうび。いちばん先まで進んだ人です。最後のカードが届かなかった番は、だれももらえません。
+      </p>
+      <p>
+        ごほうびは<b>人数と同じ点数</b>です（2人なら +${BONUS_BY_PLAYERS[2]}点、4人なら +${BONUS_BY_PLAYERS[4]}点、6人なら +${BONUS_BY_PLAYERS[6]}点）。人数が多いほど列が長くなって失点も大きくなるので、そのぶんごほうびも大きくなります。
       </p>
       <h3>例</h3>
       <p>
-        先頭が 55 で、58・3・9・17 が出たとします。58（+3）、3（+5）、9（+6）、17（+8）と全部つながり、17 を出した人が +${LEAD_BONUS}点。17
+        先頭が 55 で、58・3・9・17 が出たとします。58（+3）、3（+5）、9（+6）、17（+8）と全部つながり、17 を出した人がごほうびをもらいます。17
         ではなく 30（9 から +21）だったら届かず、その人が列を引き取ります。
       </p>
       <h3>終了</h3>

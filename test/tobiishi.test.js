@@ -6,7 +6,7 @@ import * as game from '../shared/games/tobiishi.js';
 import { GameError } from '../shared/games/common.js';
 import { mulberry32 } from '../shared/rng.js';
 
-const { distance, resolveTurn, RING, REACH, HAND, LEAD_BONUS } = game;
+const { distance, resolveTurn, RING, REACH, HAND, BONUS_BY_PLAYERS } = game;
 const pileOf = (...cards) => cards.map((card) => ({ card, seat: -1 }));
 
 /** 先頭のカードと手札を決めた状態を作る。 */
@@ -65,6 +65,8 @@ test('tobiishi: 届かなかったカードが新しい列の最初になり、�
 test('tobiishi: 手札は本人にしか見えず、出したカードは全員がそろうまで伏せておく', () => {
   for (let n = 2; n <= 6; n++) {
     const state = game.setup({ n, rng: mulberry32(n) });
+    assert.equal(state.bonus, n, 'ごほうびは人数と同じ点数');
+    assert.equal(game.view(state, -1).bonus, BONUS_BY_PLAYERS[n]);
     const all = [...state.hands.flat(), game.topOf(state)];
     assert.equal(new Set(all).size, n * HAND + 1, 'カードはすべてちがう数字');
     assert.ok(all.every((c) => c >= 1 && c <= RING));
@@ -122,7 +124,8 @@ test('tobiishi: 見せているあいだは点も列も動かさず、時計で�
 
   // 先頭 50。55 (+5) がつながり、30 は届かず2枚引き取り。40 は 30 から +10 でつながって、ごほうび。
   turn(state, rng, [30, 40, 55]);
-  assert.deepEqual(state.points, [-2, LEAD_BONUS, -3]);
+  assert.equal(state.bonus, 3, 'ごほうびは人数と同じ点数');
+  assert.deepEqual(state.points, [-2, 3, -3]);
   assert.deepEqual(state.leads, [0, 1, 0]);
   assert.deepEqual(state.pile.map((p) => p.card), [30, 40]);
 });
