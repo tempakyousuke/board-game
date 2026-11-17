@@ -15,8 +15,10 @@ import docchi from './docchi.js';
 import obake from './obake.js';
 import ohajiki from './ohajiki.js';
 import dauto from './dauto.js';
+import tobiishi from './tobiishi.js';
+import fukikobore from './fukikobore.js';
 
-const SCREENS = { toudai, gottsunko, dokan, korokoro, bento, tataki, hitsuji, ninja, noronoro, hatake, docchi, obake, ohajiki, dauto };
+const SCREENS = { toudai, gottsunko, dokan, korokoro, bento, tataki, hitsuji, ninja, noronoro, hatake, docchi, obake, ohajiki, dauto, tobiishi, fukikobore };
 
 export const GAME_UI = Object.fromEntries(
   Object.keys(GAMES).map((id) => [id, { meta: GAMES[id].meta, ...SCREENS[id] }]),
