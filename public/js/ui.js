@@ -85,6 +85,7 @@ export const GAME_ART = {
   docchi: { bg: 'linear-gradient(160deg,#ffb3c7,#f0719b)', fg: '#4a1028', icons: ['🤝', '❓'] },
   obake: { bg: 'linear-gradient(160deg,#7a63a8,#3b2f4a)', fg: '#fff', icons: ['👻', '🃏'] },
   ohajiki: { bg: 'linear-gradient(160deg,#8ed0e8,#3f8fb5)', fg: '#06324a', icons: ['🎯', '💥'] },
+  dauto: { bg: 'linear-gradient(160deg,#2f9486,#1b5a5e)', fg: '#fff', icons: ['🎲', '🤥'] },
 };
 
 /**

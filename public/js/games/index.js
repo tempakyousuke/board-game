@@ -14,8 +14,9 @@ import hatake from './hatake.js';
 import docchi from './docchi.js';
 import obake from './obake.js';
 import ohajiki from './ohajiki.js';
+import dauto from './dauto.js';
 
-const SCREENS = { toudai, gottsunko, dokan, korokoro, bento, tataki, hitsuji, ninja, noronoro, hatake, docchi, obake, ohajiki };
+const SCREENS = { toudai, gottsunko, dokan, korokoro, bento, tataki, hitsuji, ninja, noronoro, hatake, docchi, obake, ohajiki, dauto };
 
 export const GAME_UI = Object.fromEntries(
   Object.keys(GAMES).map((id) => [id, { meta: GAMES[id].meta, ...SCREENS[id] }]),

@@ -3733,6 +3733,422 @@ button.game-card-main {
   font-size: 0.78rem;
 }
 
+/* ---- みんなでダウト ---------------------------------------------------- */
+
+.du-stage {
+  background: linear-gradient(160deg, #2c8478, #1a5257);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 14px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow);
+}
+.du-claim {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+  padding: 10px 12px;
+  text-align: center;
+}
+.du-claim.is-true {
+  background: rgba(96, 211, 148, 0.24);
+  border-color: #7fe0a8;
+}
+.du-claim.is-false {
+  background: rgba(255, 120, 120, 0.22);
+  border-color: #ff9c9c;
+}
+.du-claim-by {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  opacity: 0.92;
+}
+.du-claim-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 1.15rem;
+  line-height: 1.1;
+}
+.du-claim-main b {
+  font-size: 2.6rem;
+  color: #ffd166;
+}
+.du-claim-empty {
+  font-weight: 700;
+  padding: 14px 0;
+}
+.du-verdict {
+  font-weight: 800;
+  font-size: 1.05rem;
+  background: #fff;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 2px 14px;
+  animation: pop 0.35s ease-out;
+}
+.du-claim.is-true .du-verdict b {
+  color: var(--green-deep);
+}
+.du-claim.is-false .du-verdict b {
+  color: var(--danger);
+}
+.du-note {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  font-size: 0.76rem;
+  opacity: 0.85;
+}
+.du-note .die,
+.du-hint .die,
+.du-declare .die,
+.du-chip .die,
+.du-rules .die {
+  font-size: 18px;
+}
+.du-trail,
+.du-tricked {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+.du-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 2px 9px 2px 3px;
+  font-weight: 700;
+}
+.du-tricked {
+  justify-content: center;
+  color: var(--ink-soft);
+}
+.du-tricked .du-chip {
+  background: #f4ecdb;
+  color: var(--ink);
+}
+
+.du-table {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.du-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 12px;
+  padding: 6px 8px;
+  min-height: 44px;
+}
+.du-row.is-me {
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+  padding: 8px;
+}
+.du-row.is-lost {
+  animation: shake 0.5s;
+}
+.du-who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 84px;
+  min-width: 0;
+}
+.du-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.du-dice {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+/* 自分の行は2段。上に名前としるし、下に大きなサイコロ。 */
+.du-row.is-me .du-dice {
+  order: 3;
+  flex: 1 0 100%;
+  justify-content: center;
+  gap: 6px;
+}
+.du-hidden {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: #174246;
+  color: rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.22);
+}
+.du-hidden i {
+  font-size: 0.55em;
+  font-style: normal;
+  font-weight: 800;
+}
+/* なくしたサイコロのあと。 */
+.du-gone {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 2px dashed rgba(255, 255, 255, 0.28);
+  flex: none;
+}
+.du-gone.is-big {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+}
+.die.die-hit {
+  background: #ffe08a;
+  box-shadow:
+    inset 0 -0.07em 0 rgba(0, 0, 0, 0.14),
+    0 0 0 0.07em #ffb703;
+}
+.die.die-dim {
+  opacity: 0.5;
+}
+.du-mark {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  flex: none;
+  min-width: 78px;
+}
+.du-tag {
+  font-style: normal;
+  font-size: 0.76rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 1px 9px;
+}
+.du-tag.is-claimant {
+  background: #ffd166;
+  color: #4a2c0a;
+}
+.du-tag.is-true {
+  background: #dff5e4;
+  color: var(--green-deep);
+}
+.du-tag.is-false {
+  background: #ffe0e0;
+  color: #b02a2a;
+}
+.du-minus {
+  background: var(--danger);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0 7px;
+  font-size: 0.82rem;
+  animation: pop 0.35s ease-out;
+}
+
+.du-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.du-faces {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+.du-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border: 2px solid var(--line-deep);
+  background: #f4ecdb;
+  border-radius: 12px;
+  padding: 7px 2px 4px;
+  cursor: pointer;
+  min-height: 44px;
+}
+.du-face small {
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.du-face.is-on {
+  border-color: var(--accent-deep);
+  background: #ffe7dc;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.du-face.is-on small {
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+.du-face:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.du-qty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.du-step {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--line-deep);
+  background: var(--paper);
+  box-shadow: 0 3px 0 var(--line-deep);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+.du-step:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--line-deep);
+}
+.du-step:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.du-qty-value {
+  min-width: 118px;
+  text-align: center;
+  font-weight: 700;
+}
+.du-qty-value b {
+  font-size: 2.2rem;
+  line-height: 1;
+  margin-right: 2px;
+}
+.du-declare {
+  flex-wrap: wrap;
+}
+.du-hint {
+  text-align: center;
+  font-size: 0.85rem;
+  background: #f4ecdb;
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+.du-hint.is-soft {
+  background: none;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+.du-bets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.du-bet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border: 2px solid;
+  border-radius: 16px;
+  padding: 12px 6px;
+  color: #fff;
+  cursor: pointer;
+  min-height: 72px;
+  transition:
+    transform 0.05s,
+    box-shadow 0.05s,
+    opacity 0.15s;
+}
+.du-bet b {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+.du-bet small {
+  font-size: 0.78rem;
+  opacity: 0.92;
+}
+.du-bet.is-true {
+  background: var(--green);
+  border-color: var(--green-deep);
+  box-shadow: 0 4px 0 var(--green-deep);
+}
+.du-bet.is-false {
+  background: var(--danger);
+  border-color: #a82a2a;
+  box-shadow: 0 4px 0 #a82a2a;
+}
+.du-bet:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+}
+.du-bet.is-on {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+.du-bet.is-off {
+  opacity: 0.4;
+}
+.du-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.du-losers {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.du-me {
+  text-align: center;
+  font-weight: 800;
+  border-radius: 10px;
+  padding: 5px 10px;
+}
+.du-me.is-good {
+  background: #dff5e4;
+  color: var(--green-deep);
+}
+.du-me.is-bad {
+  background: #ffe0e0;
+  color: #b02a2a;
+}
+.du-legend {
+  border-top: 2px dashed var(--line);
+  padding-top: 8px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
 /* ---- アニメーション ---------------------------------------------------- */
 
 @keyframes spin {
