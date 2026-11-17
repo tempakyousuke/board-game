@@ -3471,6 +3471,162 @@ button.game-card-main {
   font-size: 0.92rem;
 }
 
+/* ---- おばけ神経衰弱 ---------------------------------------------------- */
+
+.ob-wrap {
+  position: relative;
+  width: 100%;
+  max-width: min(540px, max(300px, calc((100dvh - 330px) * 1.12)));
+  margin: 0 auto;
+}
+.ob-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: 6px;
+  background: #3b2f4a;
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: var(--shadow);
+}
+.ob-card {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border: 0;
+  padding: 0;
+  background: none;
+  perspective: 500px;
+}
+.ob-card:disabled {
+  cursor: default;
+}
+.ob-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.35s;
+}
+.ob-card.is-open .ob-inner {
+  transform: rotateY(180deg);
+}
+.ob-back,
+.ob-front {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.ob-back {
+  background: repeating-linear-gradient(45deg, #8a72ba, #8a72ba 6px, #7c65ad 6px, #7c65ad 12px);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 800;
+}
+.ob-front {
+  background: #fffdf8;
+  border: 2px solid #e6d9c0;
+  transform: rotateY(180deg);
+  font-size: clamp(1.4rem, 7.5vw, 2.3rem);
+  line-height: 1;
+}
+.ob-card.is-ghost .ob-front {
+  background: #e7dcfa;
+  border-color: #b79be6;
+  animation: wobble 0.5s 3;
+}
+.ob-card.is-gone {
+  visibility: hidden;
+}
+.ob-card.is-pickable {
+  cursor: pointer;
+}
+.ob-card.is-pickable .ob-back {
+  border-color: #ffd166;
+}
+@media (hover: hover) {
+  .ob-card.is-pickable:hover .ob-inner {
+    transform: translateY(-3px);
+  }
+}
+.ob-card.is-shuffled {
+  animation: shake 0.45s 3;
+}
+.ob-card.is-shuffled .ob-back {
+  border-color: #ff9a66;
+  box-shadow: 0 0 10px 2px #ff9a66;
+}
+.ob-eye {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  z-index: 2;
+  font-style: normal;
+  font-size: 0.95rem;
+  background: #fff;
+  border-radius: 50%;
+  width: 1.5em;
+  height: 1.5em;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.ob-banner {
+  text-align: center;
+  font-weight: 800;
+  background: #e7dcfa;
+  border: 2px solid #b79be6;
+  border-radius: 14px;
+  padding: 8px 12px;
+  animation: pop 0.35s;
+}
+.ob-note {
+  text-align: center;
+  font-size: 0.86rem;
+  background: #f4ecdb;
+  border-radius: 10px;
+  padding: 5px 10px;
+}
+.ob-taken {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ob-taken-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #faf3e3;
+  border-left: 5px solid var(--c);
+  border-radius: 10px;
+  padding: 3px 8px;
+  min-height: 34px;
+}
+.ob-taken-row.is-me {
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--line-deep);
+}
+.ob-taken-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+.ob-taken-cards i {
+  font-style: normal;
+}
+.ob-taken-cards .is-gold {
+  background: #ffe9a8;
+  border-radius: 6px;
+  padding: 0 2px;
+}
+.ob-legend {
+  font-size: 0.76rem;
+  text-align: center;
+}
+
 /* ---- アニメーション ---------------------------------------------------- */
 
 @keyframes spin {

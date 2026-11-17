@@ -83,6 +83,7 @@ export const GAME_ART = {
   noronoro: { bg: 'linear-gradient(160deg,#bfe3a1,#7cc47a)', fg: '#123b1a', icons: ['🐌', '🏁'] },
   hatake: { bg: 'linear-gradient(160deg,#c98f5a,#8a5a33)', fg: '#fff', icons: ['🥕', '🌽'] },
   docchi: { bg: 'linear-gradient(160deg,#ffb3c7,#f0719b)', fg: '#4a1028', icons: ['🤝', '❓'] },
+  obake: { bg: 'linear-gradient(160deg,#7a63a8,#3b2f4a)', fg: '#fff', icons: ['👻', '🃏'] },
 };
 
 /**
