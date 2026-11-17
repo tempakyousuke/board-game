@@ -36,7 +36,10 @@ export const HAND_SIZE = 3;
 export const RANK_POINTS = [10, 6, 4, 2, 1, 0];
 const GO_VALUES = [1, 1, 2, 2, 3];
 const WILD_COUNT = 4;
-const BACK_COUNT = 4;
+// 「あともどり」は 8 枚。4 枚だと 4 人で遊んでも 1 人 1 回出せるかどうかで、推しを当てて
+// じゃまをする場面がほとんど起きなかった。8 枚で 1 人あたり 2〜3 回になる。
+// 10 枚まで増やすと、6 人のときにレースが倍近く長くなるのでやめた。
+const BACK_COUNT = 8;
 const WILD_STEPS = 2;
 const BACK_STEPS = 2;
 
