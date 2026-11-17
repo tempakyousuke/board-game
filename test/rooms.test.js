@@ -238,3 +238,39 @@ test('名前は整えられ、長すぎる名前は切られる', () => {
   room.handle(members[0].player, { t: 'rename', name: { toString: 1 } });
   assert.equal(members[0].player.name, 'ゲスト', '文字列でない名前は無視する');
 });
+
+test('時間で進むゲームは、サーバーの時計で値下がりし、CPU が買い、最後まで進む', (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { room, members } = setup(['あや']);
+  const [a] = members;
+  room.handle(a.player, { t: 'setGame', gameId: 'tataki' });
+  room.handle(a.player, { t: 'addBot' });
+  room.handle(a.player, { t: 'start' });
+  assert.equal(a.conn.last().game.view.phase, 'intro');
+
+  t.mock.timers.tick(2600);
+  assert.equal(a.conn.last().game.view.phase, 'falling');
+  const startPrice = a.conn.last().game.view.price;
+  t.mock.timers.tick(1000);
+  assert.equal(a.conn.last().game.view.price, startPrice - 1);
+
+  // 関係ない操作をしても、時計は延びない。
+  t.mock.timers.tick(600);
+  room.handle(a.player, { t: 'emote', emoji: '👍' });
+  room.handle(a.player, { t: 'action', action: { type: 'buy', lot: 99 } });
+  t.mock.timers.tick(400);
+  assert.ok(a.conn.last().game.view.price <= startPrice - 2);
+
+  // 人間がいなくなると時計は止まり、戻ってくるとまた動く。
+  room.disconnect(a.player, a.conn);
+  const frozen = JSON.stringify(room.game.state);
+  t.mock.timers.tick(30_000);
+  assert.equal(JSON.stringify(room.game.state), frozen);
+  const again = fakeConn();
+  room.join(again, { clientId: 'client-0-xxxx' });
+
+  for (let i = 0; i < 3000 && room.phase === 'playing'; i++) t.mock.timers.tick(200);
+  assert.equal(room.phase, 'finished');
+  const view = again.last().game.view;
+  assert.ok(view.bought[again.last().game.seat === 0 ? 1 : 0].length > 0, 'CPU が品物を買っている');
+});

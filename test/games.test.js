@@ -11,16 +11,30 @@ import { optionsFor, bustChance, largestGroups, roundOrder, SIZE } from '../shar
 
 const MAX_STEPS = 5000;
 
+/**
+ * CPU だけで1ゲームを最後まで進める。
+ * 番のあるゲームは行動待ちの席から、リアルタイムのゲームは全員に聞いて、
+ * だれも動かなければ時計を1つ進める。
+ */
 export function playOut(game, n, seed) {
   const rng = mulberry32(seed);
   const state = game.setup({ n, rng });
   let steps = 0;
   while (!state.over) {
-    const waiting = game.pending(state);
-    assert.ok(waiting.length > 0, '行動待ちの席がないのに終わっていない');
-    const seat = waiting[Math.floor(rng() * waiting.length)];
-    const action = game.bot(state, seat, rng);
-    game.act(state, seat, action, rng);
+    const waiting = game.meta.realtime ? Array.from({ length: n }, (_, s) => s) : game.pending(state);
+    const order = waiting.slice().sort(() => rng() - 0.5);
+    let acted = false;
+    for (const seat of order) {
+      const action = game.bot(state, seat, rng);
+      if (!action) continue;
+      game.act(state, seat, action, rng);
+      acted = true;
+      break;
+    }
+    if (!acted) {
+      assert.ok(game.timer?.(state), '行動待ちの席も時計もないのに終わっていない');
+      game.tick(state, rng);
+    }
     // どの席の view も JSON にできること。
     for (let s = -1; s < n; s++) JSON.stringify(game.view(state, s));
     assert.ok(++steps < MAX_STEPS, 'ゲームが終わらない');
@@ -39,7 +53,12 @@ for (const game of Object.values(GAMES)) {
         const { result } = state;
         assert.equal(result.scores.length, n);
         assert.equal(result.places.length, n);
-        assert.ok(result.winners.length >= 1);
+        if (result.coop) {
+          // 協力ゲームは全員で勝つか、全員で負けるか。
+          assert.equal(result.winners.length, result.success ? n : 0);
+        } else {
+          assert.ok(result.winners.length >= 1);
+        }
         for (const w of result.winners) assert.equal(result.places[w], 1);
         assert.deepEqual(game.pending(state), []);
       }
@@ -52,7 +71,7 @@ for (const game of Object.values(GAMES)) {
     assert.throws(() => game.act(state, 0, { type: 'no-such-action' }, rng), GameError);
     assert.throws(() => game.act(state, 0, null, rng), GameError);
     const { state: done } = playOut(game, minPlayers, 99);
-    const action = { type: 'place', cell: 0, kind: 'plus', to: 0, n: 1 };
+    const action = { type: 'place', cell: 0, kind: 'plus', to: 0, n: 1, tile: 0, lot: 0 };
     assert.throws(() => game.act(done, 0, action, rng), GameError);
   });
 }

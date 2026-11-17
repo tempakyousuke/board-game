@@ -61,7 +61,7 @@ function PlayerStrip({ snap, players, emotes, send }) {
                 ${simultaneous && player.connected && html` ${pending ? '🤔' : '✅'}`}
               </span>
             </span>
-            <span class="strip-score"><b>${scores[s]}</b><small>${ui.unit}</small></span>
+            ${scores && html`<span class="strip-score"><b>${scores[s]}</b><small>${ui.unit}</small></span>`}
             ${isMe && html`<span class="strip-you">あなた</span>`}
             ${emote && html`<span key=${emote.id} class="emote-pop">${emote.emoji}</span>`}
             ${stalled &&
@@ -82,9 +82,34 @@ function ResultCard({ snap, players, send }) {
   const iWon = result.winners.includes(game.seat);
   const winnerNames = result.winners.map((s) => players[s].name).join(' さん・');
 
+  // 複数人が1位のとき: チーム戦なら「あなたたち」、個人戦なら同率。
+  const winTitle = result.winners.length === 1 ? 'あなたの勝ち！' : result.roles ? 'あなたたちの勝ち！' : '同率1位！';
+
+  const hostButtons = isHost
+    ? html`
+        <div class="row">
+          <button class="btn btn-primary" onClick=${() => send({ t: 'rematch' })}>もう一度あそぶ</button>
+          <button class="btn" onClick=${() => send({ t: 'toLobby' })}>ほかのゲームをえらぶ</button>
+        </div>
+      `
+    : html`<p class="muted">ホストが次のゲームを選ぶのを待っています…</p>`;
+
+  // 協力ゲームは順位がないので、全員の結果を1つだけ出す。
+  if (result.coop) {
+    return html`
+      <section class=${cx('result', !result.success && 'is-lost')}>
+        <h2>${result.success ? '🎉 みんなの勝ち！' : '😢 ざんねん…'}</h2>
+        ${result.success && html`<p class="result-stars" aria-label=${`星${result.stars}つ`}>${'★'.repeat(result.stars)}<span>${'★'.repeat(3 - result.stars)}</span></p>`}
+        <p class="result-headline">${result.headline}</p>
+        ${hostButtons}
+      </section>
+    `;
+  }
+
   return html`
     <section class="result">
-      <h2>${iWon ? '🎉 あなたの勝ち！' : `🏆 ${winnerNames} さんの勝ち！`}</h2>
+      <h2>${iWon ? `🎉 ${winTitle}` : `🏆 ${winnerNames} さんの勝ち！`}</h2>
+      ${result.headline && html`<p class="result-headline">${result.headline}</p>`}
       <ol class="result-list">
         ${order.map(
           (s) => html`
@@ -92,19 +117,12 @@ function ResultCard({ snap, players, send }) {
               <span class="result-place">${medal(result.places[s])}</span>
               <${Avatar} player=${players[s]} size="sm" />
               <span class="result-name">${players[s].name}</span>
-              <span class="result-score"><b>${result.scores[s]}</b> ${result.unit}</span>
+              <span class="result-score">${result.roles ? result.roles[s] : html`<b>${result.scores[s]}</b> ${result.unit}`}</span>
             </li>
           `,
         )}
       </ol>
-      ${isHost
-        ? html`
-            <div class="row">
-              <button class="btn btn-primary" onClick=${() => send({ t: 'rematch' })}>もう一度あそぶ</button>
-              <button class="btn" onClick=${() => send({ t: 'toLobby' })}>ほかのゲームをえらぶ</button>
-            </div>
-          `
-        : html`<p class="muted">ホストが次のゲームを選ぶのを待っています…</p>`}
+      ${hostButtons}
     </section>
   `;
 }

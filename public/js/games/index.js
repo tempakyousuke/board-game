@@ -5,8 +5,14 @@ import toudai from './toudai.js';
 import gottsunko from './gottsunko.js';
 import dokan from './dokan.js';
 import korokoro from './korokoro.js';
+import bento from './bento.js';
+import tataki from './tataki.js';
+import hitsuji from './hitsuji.js';
+import ninja from './ninja.js';
+import noronoro from './noronoro.js';
+import hatake from './hatake.js';
 
-const SCREENS = { toudai, gottsunko, dokan, korokoro };
+const SCREENS = { toudai, gottsunko, dokan, korokoro, bento, tataki, hitsuji, ninja, noronoro, hatake };
 
 export const GAME_UI = Object.fromEntries(
   Object.keys(GAMES).map((id) => [id, { meta: GAMES[id].meta, ...SCREENS[id] }]),

@@ -17,7 +17,7 @@ export function Home({ initialName, onCreate, onJoin, busy }) {
       <section class="hero">
         <p class="hero-kicker">インストールも登録もいりません</p>
         <h1>URL を送るだけ。<br />友達とボードゲーム。</h1>
-        <p class="hero-lead">ここでしか遊べないオリジナルゲームを ${GAME_METAS.length} つ用意しました。2人から6人まで、スマホでも遊べます。</p>
+        <p class="hero-lead">ここでしか遊べないオリジナルゲームを ${GAME_METAS.length} つ用意しました。1人でも6人でも、スマホでも遊べます。</p>
 
         <div class="card entry">
           <label class="field">

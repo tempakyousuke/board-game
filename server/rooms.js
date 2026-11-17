@@ -94,6 +94,8 @@ export class Room {
     this.phase = 'lobby'; // lobby | playing | finished
     this.game = null; // { id, seats: [playerId], state, since }
     this.botTimer = null;
+    this.tickTimer = null;
+    this.tickKey = null;
     this.hostTimer = null;
     this.emptySince = manager.now();
     this.botCount = 0;
@@ -159,6 +161,7 @@ export class Room {
     const host = this.players.find((p) => p.id === this.hostId);
     const hostGone = !host || (!host.conn && this.manager.now() - (host.leftAt ?? 0) >= HOST_GRACE);
     if (hostGone) this.migrateHost();
+    this.scheduleTick(); // だれもいなくて止まっていた時計を動かす
     this.broadcast();
     return player;
   }
@@ -172,7 +175,10 @@ export class Room {
 
     // ロビーにいる観戦者は残しておく意味がないので消す。
     if (player.spectator && this.phase === 'lobby') this.removePlayer(player);
-    if (!this.hasConnectedHuman()) this.emptySince = this.manager.now();
+    if (!this.hasConnectedHuman()) {
+      this.emptySince = this.manager.now();
+      this.stopTick();
+    }
     if (player.id === this.hostId) this.scheduleHostMigration();
     this.broadcast();
   }
@@ -236,6 +242,7 @@ export class Room {
   }
 
   destroy() {
+    this.stopTick();
     clearTimeout(this.botTimer);
     clearTimeout(this.hostTimer);
     for (const p of this.players) p.conn?.close(CLOSE_LEFT, 'room closed');
@@ -409,6 +416,7 @@ export class Room {
     }
     clearTimeout(this.botTimer);
     this.botTimer = null;
+    this.stopTick();
     this.phase = 'lobby';
     this.prune();
     this.game = {
@@ -420,11 +428,13 @@ export class Room {
     };
     this.phase = 'playing';
     this.scheduleBots();
+    this.scheduleTick();
   }
 
   endGame() {
     clearTimeout(this.botTimer);
     this.botTimer = null;
+    this.stopTick();
     this.game = null;
     this.phase = 'lobby';
     this.prune();
@@ -433,14 +443,59 @@ export class Room {
   applyAction(seat, action) {
     const game = GAMES[this.game.id];
     game.act(this.game.state, seat, action, this.manager.rng);
+    this.afterChange();
+  }
+
+  /** 状態が変わったあとの後始末 (終了の判定、CPU と時計の予約)。 */
+  afterChange() {
     this.game.since = this.manager.now();
     if (this.game.state.over) {
       this.phase = 'finished';
       clearTimeout(this.botTimer);
       this.botTimer = null;
+      this.stopTick();
     } else {
       this.scheduleBots();
+      this.scheduleTick();
     }
+  }
+
+  /**
+   * 時間で進むゲーム (競りの値下がりなど) のための時計。
+   * ゲームが timer(state) で { ms, key } を返すと、ms 後に tick(state) を呼ぶ。
+   * key が同じあいだは予約し直さないので、関係ない操作で時計が延びることはない。
+   */
+  scheduleTick() {
+    if (this.phase !== 'playing' || !this.game) return;
+    const game = GAMES[this.game.id];
+    const wanted = game.timer?.(this.game.state) ?? null;
+    if (!wanted || !this.hasConnectedHuman()) {
+      this.stopTick();
+      return;
+    }
+    if (this.tickTimer && this.tickKey === wanted.key) return;
+    this.stopTick();
+    this.tickKey = wanted.key;
+    this.tickTimer = setTimeout(() => {
+      this.tickTimer = null;
+      this.tickKey = null;
+      if (this.phase !== 'playing' || !this.game) return;
+      try {
+        game.tick(this.game.state, this.manager.rng);
+      } catch (err) {
+        console.error(`[room ${this.code}] tick failed`, err);
+        return;
+      }
+      this.afterChange();
+      this.broadcast();
+    }, wanted.ms);
+    this.tickTimer.unref?.();
+  }
+
+  stopTick() {
+    clearTimeout(this.tickTimer);
+    this.tickTimer = null;
+    this.tickKey = null;
   }
 
   /** CPU の席に行動待ちがあれば、少し間をおいて1手ずつ進める。 */
@@ -459,7 +514,7 @@ export class Room {
         return;
       }
       this.broadcast();
-    }, this.manager.botDelay());
+    }, this.manager.botDelay() * (GAMES[this.game.id].meta.realtime ? 0.5 : 1));
     this.botTimer.unref?.();
   }
 
@@ -468,7 +523,12 @@ export class Room {
     const seated = this.game.seats.map((id) => this.players.find((p) => p.id === id));
     // 「次へ」は結果を読み終えた人間が押すもの。ただし席に人間がだれもいなければ CPU が進める。
     const humanSeated = seated.some((p) => p && !p.bot && p.conn);
-    for (const seat of game.pending(this.game.state)) {
+    // リアルタイムのゲームには「番」がないので、CPU 全員に動くかどうかを聞く。
+    let seats = game.pending(this.game.state);
+    if (game.meta.realtime) {
+      seats = seated.map((_, seat) => seat).sort(() => this.manager.rng() - 0.5);
+    }
+    for (const seat of seats) {
       if (!seated[seat]?.bot) continue;
       const action = game.bot(this.game.state, seat, this.manager.rng);
       if (!action || (action.type === 'next' && humanSeated)) continue;
