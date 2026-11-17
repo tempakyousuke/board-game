@@ -3,6 +3,7 @@
 import { html, useState, useEffect, useMemo, useRef, cx } from '../lib.js';
 import { reachable, fleeFrom, isGate, DOG_STEPS, FLEE_STEPS } from '/shared/games/hitsuji.js';
 import { Avatar, paletteOf } from '../ui.js';
+import { play } from '../sound.js';
 
 const FX_MS = 2200;
 const DOG_NAMES = ['A', 'B', 'C', 'D'];
@@ -21,6 +22,9 @@ function Board({ view, seat, players, act }) {
     seen.current = id;
     setTarget(null);
     setFx(view.last);
+    play('bark');
+    if ([...view.last.fled, ...view.last.wandered].some((m) => m.home)) play('chime', { delay: 0.35 });
+    else if (view.last.fled.length > 0) play('whoosh', { delay: 0.12 });
     const timer = setTimeout(() => setFx(null), FX_MS);
     return () => clearTimeout(timer);
   }, [view.last?.id]);

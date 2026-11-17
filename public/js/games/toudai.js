@@ -3,6 +3,7 @@
 import { html, useState, useMemo, useEffect, cx } from '../lib.js';
 import { lightMap, beams } from '/shared/games/toudai.js';
 import { Avatar, paletteOf } from '../ui.js';
+import { play, useChanged } from '../sound.js';
 
 const KIND_LABEL = { plus: '＋型', cross: '×型' };
 
@@ -32,6 +33,13 @@ function Board({ view, seat, players, act }) {
   const towerCount = useMemo(() => view.cells.filter((c) => c && c !== 'rock').length, [view.cells]);
 
   useEffect(() => setSel(null), [towerCount, view.phase, view.turn]);
+  useChanged(towerCount, (now, before) => {
+    if (now > before) play('place');
+  });
+  // ラスト1基がだれかとかぶって建てられなかったとき。
+  useChanged(!!view.finalReveal, (shown) => {
+    if (shown && view.finalReveal.some((r) => !r.ok)) play('bonk', { delay: 0.15 });
+  });
 
   // 「置いたらこうなる」の仮置き。同時に置くラスト1基は、決定後も自分にだけ見せる。
   const submitted = inFinal ? view.myChoice : null;

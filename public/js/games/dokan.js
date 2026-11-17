@@ -2,6 +2,7 @@
 
 import { html, cx } from '../lib.js';
 import { Avatar } from '../ui.js';
+import { play, useChanged } from '../sound.js';
 
 const CARD_NAMES = ['A', 'B', 'C'];
 
@@ -17,6 +18,18 @@ function Board({ view, seat, players, act }) {
   const length = revealed ? view.fuse.reduce((a, b) => a + b, 0) : null;
   const myTurn = view.phase === 'play' && view.turn === seat;
   const boom = view.boom;
+
+  // 火が進むほど音が高くなる。爆発したら、その音だけを鳴らす。
+  useChanged(view.history.length, (now, before) => {
+    if (now <= before || view.boom) return;
+    const last = view.history[now - 1];
+    if (last.pass) play('step');
+    else play('fuse', { level: Math.min(1, view.total / trackMax) });
+  });
+  useChanged(!!view.boom, (exploded) => {
+    if (exploded) play('boom');
+  });
+  useChanged(view.round, () => play('card'));
 
   let status;
   if (view.phase === 'play') {
