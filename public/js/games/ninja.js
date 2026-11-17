@@ -3,6 +3,7 @@
 import { html, useState, useEffect, useRef, cx } from '../lib.js';
 import { neighbors } from '/shared/games/ninja.js';
 import { Avatar, paletteOf } from '../ui.js';
+import { play } from '../sound.js';
 
 const FX_MS = 3200;
 const GUARD_NAMES = ['A', 'B', 'C', 'D'];
@@ -22,6 +23,7 @@ function Board({ view, seat, players, act }) {
     if (id === seen.current) return;
     seen.current = id;
     setTarget(null);
+    play({ sneak: 'sneak', patrol: 'step', smoke: 'smoke', caught: 'caught' }[view.event.type]);
     if (view.event.type !== 'smoke' && view.event.type !== 'caught') return;
     setFx(view.event);
     clearTimeout(fxTimer.current);

@@ -3,6 +3,7 @@
 import { html, useState, useEffect, cx } from '../lib.js';
 import { RACERS, GOAL, LEAVES, PUDDLES, RANK_POINTS, HAND_SIZE, destination } from '/shared/games/noronoro.js';
 import { Avatar } from '../ui.js';
+import { play, useChanged } from '../sound.js';
 
 const COLUMNS = GOAL + 1;
 
@@ -22,6 +23,12 @@ function Board({ view, seat, players, act }) {
     setAim(null);
   }, [view.last?.id, view.turn]);
 
+  useChanged(view.last?.id ?? 0, () => {
+    play('card');
+    if (view.last.effect === 'leaf') play('up', { delay: 0.25 });
+    else if (view.last.effect === 'puddle') play('down', { delay: 0.25 });
+  });
+
   const card = myTurn && picked !== null ? view.hand[picked] : null;
   const needsAim = card && card.k !== 'go';
   const racer = card ? (card.k === 'go' ? card.racer : aim) : null;
@@ -31,7 +38,7 @@ function Board({ view, seat, players, act }) {
   const last = view.last;
   const name = (s) => players[s]?.name ?? '?';
 
-  const play = () => {
+  const playCard = () => {
     if (!card || racer === null) return;
     act(card.k === 'go' ? { type: 'play', card: picked } : { type: 'play', card: picked, racer });
   };
@@ -134,7 +141,7 @@ function Board({ view, seat, players, act }) {
               `;
             })}
           </div>
-          ${myTurn && html`<button class="btn btn-primary btn-block" disabled=${!card || racer === null} onClick=${play}>${confirmLabel}</button>`}
+          ${myTurn && html`<button class="btn btn-primary btn-block" disabled=${!card || racer === null} onClick=${playCard}>${confirmLabel}</button>`}
         `}
 
         ${view.myFav !== null &&

@@ -3,6 +3,7 @@
 import { html, render, useState, useEffect, useRef, useCallback, cx } from './lib.js';
 import { Connection, getName, setName } from './net.js';
 import { Toasts } from './ui.js';
+import { play, isSoundOn, setSoundOn, onSoundChange } from './sound.js';
 import { Home } from './home.js';
 import { Lobby, NameForm } from './lobby.js';
 import { GameScreen } from './game.js';
@@ -52,10 +53,21 @@ function App() {
     setRoute(parseRoute());
   }, []);
 
+  const lastSnap = useRef(null);
+  const [soundOn, setSound] = useState(isSoundOn);
+  useEffect(() => onSoundChange(setSound), []);
+
   if (!connRef.current) {
     connRef.current = new Connection({
       onState: (msg) => {
         msg.receivedAt = Date.now();
+        // ゲームが始まった・だれかが入ってきた、を音で知らせる (自分が入った直後は鳴らさない)。
+        const before = lastSnap.current;
+        lastSnap.current = msg;
+        if (before && before.room.code === msg.room.code) {
+          if (msg.game && msg.game.no !== before.game?.no) play('start');
+          else if (!msg.game && msg.room.players.length > before.room.players.length) play('join');
+        }
         setGone(null);
         setSnap(msg);
         // ルームを作った直後は、そのルームの URL に移る。
@@ -63,8 +75,12 @@ function App() {
         if (current.page !== 'room' || current.code !== msg.room.code) navigate(`/r/${msg.room.code}`);
       },
       onStatus: setStatus,
-      onError: (message) => notify(message),
+      onError: (message) => {
+        play('error');
+        notify(message);
+      },
       onEmote: (msg) => {
+        play('emote');
         const id = ++idRef.current;
         setEmotes((list) => [...list.filter((e) => e.playerId !== msg.playerId), { id, ...msg }]);
         setTimeout(() => setEmotes((list) => list.filter((e) => e.id !== id)), 2200);
@@ -200,14 +216,23 @@ function App() {
         <img src="/favicon.svg" alt="" width="28" height="28" />
         <span>ボドゲひろば</span>
       </a>
-      ${snap &&
-      html`
-        <div class="topbar-room">
+      <div class="topbar-room">
+        <button
+          class="icon-btn sound-btn"
+          onClick=${() => setSoundOn(!soundOn)}
+          aria-pressed=${soundOn}
+          aria-label=${soundOn ? '効果音を消す' : '効果音を出す'}
+          title=${soundOn ? '効果音: あり' : '効果音: なし'}
+        >
+          ${soundOn ? '🔊' : '🔇'}
+        </button>
+        ${snap &&
+        html`
           <span class=${cx('conn', `conn-${status}`)} title=${status === 'online' ? '接続中' : 'つなぎ直しています'}></span>
           <span class="room-chip">${snap.room.code}</span>
           <button class="btn btn-small" onClick=${leave}>退出</button>
-        </div>
-      `}
+        `}
+      </div>
     </header>
     ${snap && status === 'reconnecting' && html`<div class="reconnect-bar">接続が切れました。つなぎ直しています…</div>`}
     ${body}

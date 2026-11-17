@@ -3,6 +3,7 @@
 import { html, useState, useEffect, useMemo, cx } from '../lib.js';
 import { SHAPES, SEED, SIZE, ROUNDS, SEEDS, LINE_POINTS, SOIL_POINTS, transform } from '/shared/games/hatake.js';
 import { Avatar, paletteOf } from '../ui.js';
+import { play, useChanged } from '../sound.js';
 
 const emojiOf = (value) => (value === 'seed' ? SEED.emoji : SHAPES[value]?.emoji);
 
@@ -60,6 +61,12 @@ function Board({ view, seat, players, act }) {
     setTapped(null);
     setSeedMode(false);
   }, [view.round, view.over]);
+
+  // 全員が決めて、たねが畑に植わったとき。列がそろったら、もうひと鳴り。
+  useChanged(`${view.round}:${view.over}`, () => play('place'));
+  useChanged(seat >= 0 ? view.parts[seat].lines : 0, (now, before) => {
+    if (now > before) play('chime', { delay: 0.2 });
+  });
 
   const field = seat >= 0 ? view.fields[seat] : null;
   const mine = view.myChoice;
@@ -232,5 +239,6 @@ export default {
   unit: '点',
   progress: (view) => `ラウンド ${Math.min(view.round, view.maxRounds)} / ${view.maxRounds}`,
   waiting: (view) => !view.over,
+  turnSound: false,
   extra: (view, s) => (view.seeds[s] > 0 ? `${SEED.emoji}×${view.seeds[s]}` : ''),
 };

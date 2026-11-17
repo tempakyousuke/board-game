@@ -2,6 +2,7 @@
 
 import { html, useState, useEffect, useRef, cx } from '../lib.js';
 import { Avatar, Die, paletteOf } from '../ui.js';
+import { play, useChanged } from '../sound.js';
 
 const EVENT_MS = 3200;
 
@@ -18,6 +19,12 @@ function Board({ view, seat, players, act }) {
     if (id === seenEvent.current) return undefined;
     seenEvent.current = id;
     setEvent(view.event);
+    if (view.event.type === 'bust') {
+      play('dice');
+      play('fail', { delay: 0.4 });
+    } else {
+      play('chime');
+    }
     const timer = setTimeout(() => setEvent(null), EVENT_MS);
     return () => clearTimeout(timer);
   }, [view.event?.id]);
@@ -28,6 +35,13 @@ function Board({ view, seat, players, act }) {
     const timer = setTimeout(() => setRolling(false), 450);
     return () => clearTimeout(timer);
   }, [diceKey]);
+
+  useChanged(diceKey, (key) => {
+    if (key) play('dice');
+  });
+  useChanged(view.temp.length, (now, before) => {
+    if (now > before) play('pop');
+  });
 
   const active = view.turn;
   const myTurn = !view.over && active === seat;

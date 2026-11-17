@@ -3,6 +3,7 @@
 import { html, useEffect, useRef, cx } from '../lib.js';
 import { CATEGORIES, CATEGORY_IDS, SET_BONUS, START_COINS } from '/shared/games/tataki.js';
 import { Avatar } from '../ui.js';
+import { play, useChanged } from '../sound.js';
 
 function ItemChip({ item, fav = false }) {
   if (item.lucky && !item.cat) return html`<span class="tk-chip is-lucky">🎁</span>`;
@@ -23,6 +24,18 @@ function Board({ view, seat, players, act }) {
   const canBuy = playing && phase === 'falling' && coins >= price;
   const sale = phase === 'sold' || view.over ? view.lastSale : null;
   const buyRef = useRef(null);
+
+  // 値下がりのたびに音が低くなっていく。売れたら木づちの音。
+  useChanged(`${view.lot}:${phase}:${price}`, () => {
+    if (view.over) return;
+    if (phase === 'falling') play('tick', { level: price / view.startPrice });
+    else if (phase === 'intro') play('card');
+    else if (view.lastSale.seat < 0) play('unsold');
+    else {
+      play('sold');
+      if (view.lastSale.seat === seat) play('coin', { delay: 0.3 });
+    }
+  });
 
   const buy = () => {
     if (canBuy) act({ type: 'buy', lot: view.lot });

@@ -3,6 +3,7 @@
 import { html, useState, useEffect, useMemo, cx } from '../lib.js';
 import { FOODS, FOOD_IDS, HAND_SIZE, scoreAll } from '/shared/games/bento.js';
 import { Avatar, paletteOf } from '../ui.js';
+import { play, useChanged } from '../sound.js';
 
 function Food({ id }) {
   return html`<span class=${cx('food', `food-${id}`)} role="img" aria-label=${FOODS[id].name}>${FOODS[id].emoji}</span>`;
@@ -37,6 +38,9 @@ function Board({ view, seat, players, act }) {
     setTile(null);
     setCell(null);
   }, [view.turn, view.over]);
+
+  // 全員がつめ終わって、おかずが箱に入ったとき。
+  useChanged(`${view.turn}:${view.over}`, () => play('place'));
 
   const mine = view.myChoice;
   const box = seat >= 0 ? view.boxes[seat] : null;
@@ -219,5 +223,6 @@ export default {
   unit: '点',
   progress: (view) => `${Math.min(view.turn, view.maxTurns)} / ${view.maxTurns} 個目`,
   waiting: (view) => !view.over,
+  turnSound: false,
   extra: (view, s) => (view.karaage[s] > 0 ? `🍗×${view.karaage[s]}` : ''),
 };

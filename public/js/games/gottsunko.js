@@ -3,6 +3,7 @@
 import { html, useState, useMemo, useEffect, useRef, cx } from '../lib.js';
 import { reachable } from '/shared/games/gottsunko.js';
 import { Avatar, paletteOf } from '../ui.js';
+import { play } from '../sound.js';
 
 const FX_MS = 2800;
 
@@ -26,6 +27,9 @@ function Board({ view, seat, players, act }) {
     setSel(null);
     setPush(false);
     setFx(view.lastRound);
+    play('whoosh');
+    if (view.lastRound.clashes.some((c) => c.winner < 0)) play('bonk', { delay: 0.3 });
+    if (view.lastRound.moves.some((m) => m.seat === seat && m.gain > 0)) play('coin', { delay: 0.45 });
     const timer = setTimeout(() => setFx(null), FX_MS);
     return () => clearTimeout(timer);
   }, [view.lastRound?.round]);
@@ -222,5 +226,6 @@ export default {
   unit: '点',
   progress: (view) => `ラウンド ${Math.min(view.round, view.maxRounds)} / ${view.maxRounds}`,
   waiting: (view) => !view.over,
+  turnSound: false,
   extra: (view, s) => `💪×${view.push[s]}`,
 };

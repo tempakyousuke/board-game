@@ -4,6 +4,7 @@
 import { html, useState, useEffect, cx } from './lib.js';
 import { Avatar, Modal, medal, paletteOf } from './ui.js';
 import { GAME_UI } from './games/index.js';
+import { play, useChanged } from './sound.js';
 
 const STALL_MS = 40_000;
 const EMOTES = ['👍', '😂', '😱', '🎉', '🤔', '🙏'];
@@ -154,6 +155,17 @@ export function GameScreen({ snap, send, emotes }) {
     };
   }, [myTurn, game.no]);
   const watching = game.seat < 0;
+
+  // 自分の番が来たときと、決着がついたときの音。
+  // 毎ラウンド全員が同時に動くゲームでは、番の音はうるさいだけなので鳴らさない。
+  useChanged(myTurn, (now) => {
+    if (now && ui.turnSound !== false) play('turn');
+  });
+  useChanged(view.over, (over) => {
+    if (!over) return;
+    const won = watching || view.result.winners.includes(game.seat);
+    play(won ? 'win' : 'lose', { delay: 0.7 });
+  });
   const vacant = watching ? players.filter((p) => !p.connected && !p.bot && p.color >= 0) : [];
   const watchers = room.players.filter((p) => !game.seats.includes(p.id));
 
