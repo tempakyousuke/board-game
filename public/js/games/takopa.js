@@ -182,14 +182,14 @@ export function Board({ view, seat, players, act }) {
           <div class="du-bets">
             <button class=${cx('du-bet is-true', view.myBet === true && 'is-on', view.myBet === false && 'is-off')} onClick=${() => act({ type: 'bet', success: true })} aria-pressed=${view.myBet === true}>
               <b>⭕ 成功する</b>
-              <small>${view.need}個 食べきる</small>
+              <small>${view.need}個 食べきる・当たれば +${view.rules.betSuccess}点</small>
             </button>
             <button class=${cx('du-bet is-false', view.myBet === false && 'is-on', view.myBet === true && 'is-off')} onClick=${() => act({ type: 'bet', success: false })} aria-pressed=${view.myBet === false}>
               <b>❌ 失敗する</b>
-              <small>わさびに当たる</small>
+              <small>わさびに当たる・当たれば +${view.failPrize}点</small>
             </button>
           </div>
-          <p class="tp-note">当たると +${view.betReward}点。${view.myBet !== null && waitingBets > 0 ? '全員がそろうまでは、えらび直せます。' : ''}</p>
+          ${view.myBet !== null && waitingBets > 0 && html`<p class="tp-note">全員がそろうまでは、えらび直せます。</p>`}
         `}
 
         ${view.calls.length > 0 &&
@@ -214,7 +214,7 @@ export function Board({ view, seat, players, act }) {
                 : view.outcome.hit === c
                   ? `自滅… ${name(c)}は −${view.need}点`
                   : role
-                    ? `わさび！ ${name(c)}の ${view.need}点が、${name(view.outcome.hit)}へ`
+                    ? `わさび！ ${name(c)}は −${view.need}点。わさび係は ${name(view.outcome.hit)}でした`
                     : `わさび！ ${name(c)}は −${view.need}点。${name(view.outcome.hit)}に +${eatenTotal}点（食べた数）`}
             </p>
             ${phase === 'result' && seat >= 0 && html`<button class="btn btn-primary btn-block" onClick=${() => act({ type: 'next' })}>つぎのラウンドへ</button>`}
@@ -222,7 +222,9 @@ export function Board({ view, seat, players, act }) {
         `}
 
         <p class="tb-legend">
-          食べきれば宣言した数が得点。わさびに当たると、宣言した数だけ失点。${role ? 'その点は、わさび係のものに。' : '仕込んだ人には、挑戦者が食べた数だけ得点。'}賭けが当たると +${view.betReward}点。
+          食べきれば宣言した数が得点。わさびに当たると、宣言した数だけ失点。${role
+            ? `賭けは、「成功」を当てると +${view.rules.betSuccess}点、「失敗」を当てると宣言した数の半分。わさび係への加点はありません。`
+            : `仕込んだ人には、挑戦者が食べた数だけ得点。賭けが当たると +${view.rules.betSuccess}点。`}
         </p>
       </div>
     </div>

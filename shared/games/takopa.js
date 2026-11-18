@@ -29,6 +29,19 @@ export const SLOTS = 3;
 // (失敗 −3点・仕込んだ人 +3点の固定だと、CPU 同士の試算で、わさびを入れない人の得点が
 //  入れた人の2倍になり、仕込むうまみがなかった。)
 export const BET_REWARD = 1;
+
+// 得点の決まり (ゲームごと)。
+//   trap: わさびを食べさせた人の得点。'eaten' = 挑戦者がそこまでに食べた数 / 'none' = なし
+//   betSuccess, betFail: 「成功」「失敗」に賭けて当てたときの得点。betFail が 'half' なら、宣言した数の半分 (切り上げ)
+//
+// わさび係はだれだ では、係への加点をなくしている。係は選べないので、係になった回数の多い人が得をしていた
+// (CPU 同士の試算で、係が1回ふえるごとに 5人で +0.5点、6人で +0.9点)。
+// そのかわり賭けの点を大きくして、係は「失敗」に賭けることで稼ぐ。賭けの点が点差に占める割合は、
+// 当たり +1点のときの 1〜2% から、17〜20% になる。
+export const RULES = {
+  free: { trap: 'eaten', betSuccess: BET_REWARD, betFail: BET_REWARD },
+  role: { trap: 'none', betSuccess: 3, betFail: 'half' },
+};
 // 親が全員に同じ回数まわるようにする。
 export const ROUNDS_BY_PLAYERS = { 3: 6, 4: 8, 5: 5, 6: 6 };
 
@@ -56,6 +69,7 @@ export function setupWith({ n, rng }, mode) {
   const state = {
     n,
     mode,
+    rules: { ...RULES[mode] },
     round: 1,
     maxRounds: ROUNDS_BY_PLAYERS[n],
     dealer: randInt(rng, n),
@@ -184,10 +198,15 @@ export function act(state, seat, action, rng) {
 /**
  * わさびを食べさせた人の得点。
  * ロシアンたこパ: 挑戦者がそこまでに食べた数 (わさび入りの1個もふくむ)。大きく宣言させても、早く当たれば少ない。
- * わさび係はだれだ: 宣言した数。
+ * わさび係はだれだ: なし。
  */
+/** 「失敗」に賭けて当てたときの得点。 */
+export function failPrize(state) {
+  return state.rules.betFail === 'half' ? Math.ceil(state.need / 2) : state.rules.betFail;
+}
+
 export function trapGain(state) {
-  return state.mode === 'free' ? state.log.length : state.need;
+  return state.rules.trap === 'eaten' ? state.log.length : 0;
 }
 
 function settle(state, success, hit) {
@@ -203,9 +222,11 @@ function settle(state, success, hit) {
       state.traps[hit]++;
     }
   }
+  const right = state.bets.map((bet, s) => s !== c && bet === success);
+  const prize = success ? state.rules.betSuccess : failPrize(state);
   for (let s = 0; s < state.n; s++) {
-    if (s !== c && state.bets[s] === success) {
-      gains[s] += BET_REWARD;
+    if (right[s]) {
+      gains[s] += prize;
       state.hits[s]++;
     }
   }
@@ -234,7 +255,8 @@ export function view(state, seat) {
     mode: state.mode,
     slots: SLOTS,
     maxBid: maxBid(state),
-    betReward: BET_REWARD,
+    rules: state.rules,
+    failPrize: state.need > 0 ? failPrize(state) : 0,
     round: state.round,
     maxRounds: state.maxRounds,
     dealer: state.dealer,
@@ -408,12 +430,12 @@ function botBid(state, seat, rng) {
   // はったり: わさびを入れているのに、平気な顔で上げる。競っている人が多いほど、押しつけやすい。
   // 自分の皿の分 (3個) までは、入れていない人と同じように言っておかないと、すぐにばれる。
   if (own > 0) {
-    const crowd = rivals >= 2;
     const role = state.mode === 'role';
+    const crowd = Math.min(3, rivals);
     let nerve = 0;
-    if (current + 1 <= SLOTS) nerve = crowd ? (role ? 0.85 : 0.6) : role ? 0.25 : 0.3;
-    else if (current + 1 <= SLOTS + 2) nerve = crowd ? (role ? 0.5 : 0.3) : 0.06;
-    else if (role && current + 1 <= SLOTS + 4) nerve = crowd ? 0.25 : 0;
+    if (current + 1 <= SLOTS) nerve = (role ? [0, 0.18, 0.5, 0.8] : [0, 0.25, 0.55, 0.6])[crowd];
+    else if (current + 1 <= SLOTS + 2) nerve = (role ? [0, 0.04, 0.25, 0.5] : [0, 0.05, 0.25, 0.3])[crowd];
+    else if (role && current + 1 <= SLOTS + 4) nerve = [0, 0, 0.08, 0.25][crowd];
     if (rng() < nerve) return { type: 'bid', amount: current + 1 };
   }
   return { type: 'pass' };
@@ -428,12 +450,24 @@ function botBet(state, seat, rng) {
   // 残りは、ほかの皿を「わさびの濃さ」が平均くらいの順に食べるとみなす。
   const extra = state.need - SLOTS;
   if (extra > 0) {
-    const others = Array.from({ length: state.n }, (_, s) => s).filter((s) => s !== c);
-    const density = others.reduce((sum, s) => sum + belief[s][1] + belief[s][2] + belief[s][3], 0) / (others.length * SLOTS);
-    // 挑戦者は読んで選ぶので、でたらめに食べるよりは当たりにくい。
-    odds *= (1 - density * 0.7) ** extra;
+    const mine = state.plates[seat].indexOf(true) + 1; // 自分が入れたわさびの位置 (0 = 入れていない)
+    const others = Array.from({ length: state.n }, (_, s) => s).filter((s) => s !== c && !(mine > 0 && s === seat));
+    if (others.length > 0) {
+      const density = others.reduce((sum, s) => sum + belief[s][1] + belief[s][2] + belief[s][3], 0) / (others.length * SLOTS);
+      // 挑戦者は読んで選ぶので、でたらめに食べるよりは当たりにくい。
+      odds *= (1 - density * 0.7) ** extra;
+    }
+    if (mine > 0) {
+      // 自分の皿が、わさびのところまで食べられそうか。1皿あたりの食べられる深さから見積もる。
+      // 早くパスして疑われていそうなら、避けられやすい。
+      const depth = extra / (state.n - 1);
+      const trusted = claimOf(state, seat) >= mine ? 1 : 0.55;
+      odds *= 1 - Math.min(0.95, Math.max(0, depth - (mine - 1) + 0.35)) * trusted;
+    }
   }
-  return { type: 'bet', success: odds + (rng() - 0.5) * 0.2 >= 0.5 };
+  // 当てたときの得点がちがうなら、見込みの低い方でも賭ける値うちがある。
+  const guess = Math.min(1, Math.max(0, odds + (rng() - 0.5) * 0.2));
+  return { type: 'bet', success: guess * state.rules.betSuccess >= (1 - guess) * failPrize(state) };
 }
 
 function botEat(state, seat, rng) {

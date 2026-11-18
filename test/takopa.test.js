@@ -240,7 +240,7 @@ test('wasabi: わさびが入るのは、こっそり決まった1人の皿だ�
   assert.equal(trappers.size, 4, '係はだれにでもまわる');
 });
 
-test('wasabi: 係に当たると、宣言した数が係のものになり、結果の場面で係が明かされる', () => {
+test('wasabi: 係への加点はなく、賭けは「成功」+3点・「失敗」は宣言した数の半分。結果の場面で係が明かされる', () => {
   const rng = mulberry32(5);
   const state = role.setup({ n: 4, rng });
   state.dealer = 0;
@@ -256,9 +256,14 @@ test('wasabi: 係に当たると、宣言した数が係のものになり、結
   assert.equal(state.outcome.success, false);
   assert.equal(state.outcome.hit, t);
   assert.equal(state.outcome.gains[c], -4);
-  assert.equal(state.outcome.gains[t], 4 + BET_REWARD, '係は「失敗」に賭けていたので、その分も入る');
+  // 係に入るのは、「失敗」を当てた賭けの点 (4個の宣言の半分 = 2点) だけ。食べさせたことへの加点はない。
+  assert.equal(state.outcome.gains[t], 2);
+  assert.equal(game.trapGain(state), 0);
+  // 「成功」に賭けた人は外れ。
+  assert.deepEqual(state.outcome.gains.filter((_, s) => s !== c && s !== t), [0, 0]);
+  assert.equal(role.view(state, -1).failPrize, 2);
 
-  // わさび係はだれだ では、係に入るのは「宣言した数」のまま (食べた数ではない)。
+  // 全員が「成功」に賭けて外れた: 係にも何も入らない。7個や9個の宣言なら、「失敗」の当たりは切り上げで 4点、5点。
   const deep = role.setup({ n: 4, rng });
   for (let s = 0; s < 4; s++) role.act(deep, s, { type: 'plate', slot: 1 }, rng);
   const dt = deep.trapper;
@@ -268,9 +273,28 @@ test('wasabi: 係に当たると、宣言した数が係のものになり、結
   for (let k = 1; k < 4; k++) role.act(deep, (dc + k) % 4, { type: 'pass' }, rng);
   for (let k = 1; k < 4; k++) role.act(deep, (dc + k) % 4, { type: 'bet', success: true }, rng);
   for (let k = 0; k < SLOTS; k++) role.act(deep, dc, { type: 'eat', plate: dc }, rng);
+  assert.equal(role.view(deep, -1).failPrize, 5);
   role.act(deep, dc, { type: 'eat', plate: dt }, rng);
-  assert.equal(deep.outcome.gains[dc], -9);
-  assert.equal(deep.outcome.gains[dt], 9);
+  assert.equal(deep.outcome.success, false);
+  assert.deepEqual(deep.outcome.gains, [0, 1, 2, 3].map((s) => (s === dc ? -9 : 0)));
+
+  // 成功したときは、「成功」に賭けた人に +3点ずつ。
+  const fine = role.setup({ n: 4, rng });
+  fine.dealer = 0;
+  for (let s = 0; s < 4; s++) role.act(fine, s, { type: 'plate', slot: 3 }, rng);
+  const ft = fine.trapper;
+  const fc = (ft + 1) % 4;
+  fine.turn = fc;
+  role.act(fine, fc, { type: 'bid', amount: 2 }, rng);
+  for (let k = 1; k < 4; k++) role.act(fine, (fc + k) % 4, { type: 'pass' }, rng);
+  for (let k = 1; k < 4; k++) role.act(fine, (fc + k) % 4, { type: 'bet', success: k !== 1 }, rng);
+  role.act(fine, fc, { type: 'eat', plate: fc }, rng);
+  role.act(fine, fc, { type: 'eat', plate: fc }, rng);
+  assert.equal(fine.outcome.success, true);
+  assert.equal(fine.outcome.gains[fc], 2);
+  assert.equal(fine.outcome.gains[(fc + 1) % 4], 0, '「失敗」に賭けた人は外れ');
+  assert.equal(fine.outcome.gains[(fc + 2) % 4], 3);
+  assert.equal(fine.outcome.gains[(fc + 3) % 4], 3);
   assert.equal(role.view(state, -1).trapper, t);
 });
 
