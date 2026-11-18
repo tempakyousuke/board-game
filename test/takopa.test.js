@@ -7,7 +7,7 @@ import * as role from '../shared/games/wasabi.js';
 import { GameError } from '../shared/games/common.js';
 import { mulberry32 } from '../shared/rng.js';
 
-const { SLOTS, BET_REWARD, ROUNDS_BY_PLAYERS } = game;
+const { SLOTS, RULES, ROUNDS_BY_PLAYERS } = game;
 
 /** 仕込みを終えて、宣言が始まるところまで進める。slots は席ごとのわさびの位置 (0 = なし)。 */
 function table(slots, dealer = 0) {
@@ -124,10 +124,11 @@ test('takopa: まず自分の皿を手前から食べ、足りないぶんは他
   assert.deepEqual(game.view(state, 1).plates[2], ['safe', null, null]);
   assert.equal(state.phase, 'eat');
   eat(state, rng, 1);
-  // 5個食べきった: 宣言した数が得点。「成功」に賭けた席1 に +1。
+  // 5個食べきった: 宣言した数が得点。「成功」に賭けた席1 に +3。「失敗」に賭けた席2 は外れ。
   assert.equal(state.phase, 'result');
-  assert.deepEqual(state.outcome, { success: true, hit: -1, gains: [5, BET_REWARD, 0] });
-  assert.deepEqual(state.points, [5, 1, 0]);
+  assert.deepEqual(RULES.free, { trap: 'eaten', betSuccess: 3, betFail: 'half' });
+  assert.deepEqual(state.outcome, { success: true, hit: -1, gains: [5, 3, 0] });
+  assert.deepEqual(state.points, [5, 3, 0]);
   assert.deepEqual(state.wins, [1, 0, 0]);
   // 結果の場面では、皿も賭けも全部ひらく。
   const view = game.view(state, -1);
@@ -143,8 +144,10 @@ test('takopa: わさびに当たると宣言した数だけ失点。仕込んだ
   assert.equal(state.phase, 'eat');
   eat(state, rng, 1); // 2番目がわさび
   assert.equal(state.phase, 'result');
-  // 7個と宣言して、5個目でわさび: 挑戦者は −7点。仕込んだ席1 には、食べた 5個ぶん (と、賭けの +1)。
-  assert.deepEqual(state.outcome, { success: false, hit: 1, gains: [-7, 5 + BET_REWARD, 0] });
+  // 7個と宣言して、5個目でわさび: 挑戦者は −7点。仕込んだ席1 には、食べた 5個ぶん。
+  // 席1 は「失敗」にも賭けていたので、宣言の半分 (切り上げで 4点) も入る。「成功」に賭けた席2 は外れ。
+  assert.equal(game.view(state, -1).failPrize, 4);
+  assert.deepEqual(state.outcome, { success: false, hit: 1, gains: [-7, 5 + 4, 0] });
   assert.equal(game.trapGain(state), 5);
 
   // 自分の皿を食べ終えて、すぐ次の1個で当たった: 食べたのは 4個。
@@ -161,7 +164,8 @@ test('takopa: わさびに当たると宣言した数だけ失点。仕込んだ
   challenge(own.state, own.rng, 2, [true, false]);
   eat(own.state, own.rng, 0);
   eat(own.state, own.rng, 0);
-  assert.deepEqual(own.state.outcome, { success: false, hit: 0, gains: [-2, 0, BET_REWARD] });
+  // 「失敗」に賭けた席2 には、2個の宣言の半分 = 1点。
+  assert.deepEqual(own.state.outcome, { success: false, hit: 0, gains: [-2, 0, 1] });
   // わさびより手前までの宣言なら、仕込んでいても成功する。
   const shallow = table([3, 0, 0]);
   challenge(shallow.state, shallow.rng, 2, [true, true]);

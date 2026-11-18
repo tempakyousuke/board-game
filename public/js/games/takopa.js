@@ -1,7 +1,7 @@
 // ロシアンたこパの画面。「わさび係はだれだ」も同じ盤面を使う (view.mode で出し分ける)。
 
 import { html, useState, useEffect, cx } from '../lib.js';
-import { SLOTS, BET_REWARD, ROUNDS_BY_PLAYERS } from '/shared/games/takopa.js';
+import { SLOTS, RULES, ROUNDS_BY_PLAYERS } from '/shared/games/takopa.js';
 import { Avatar } from '../ui.js';
 import { play, useChanged } from '../sound.js';
 import { BidBox } from './bidbox.js';
@@ -224,7 +224,7 @@ export function Board({ view, seat, players, act }) {
         <p class="tb-legend">
           食べきれば宣言した数が得点。わさびに当たると、宣言した数だけ失点。${role
             ? `賭けは、「成功」を当てると +${view.rules.betSuccess}点、「失敗」を当てると宣言した数の半分。わさび係への加点はありません。`
-            : `仕込んだ人には、挑戦者が食べた数だけ得点。賭けが当たると +${view.rules.betSuccess}点。`}
+            : `仕込んだ人には、挑戦者が食べた数だけ得点。賭けは、「成功」を当てると +${view.rules.betSuccess}点、「失敗」を当てると宣言した数の半分。`}
         </p>
       </div>
     </div>
@@ -249,7 +249,11 @@ function Rules() {
         <li>親は、最初の宣言をパスできません（1個以上を言います）。</li>
       </ul>
       <h3>3. 賭け</h3>
-      <p>挑戦者以外の全員が、同時にこっそり「<b>成功</b>」か「<b>失敗</b>」に賭けます。当たると <b>+${BET_REWARD}点</b>。</p>
+      <p>挑戦者以外の全員が、同時にこっそり「<b>成功</b>」か「<b>失敗</b>」に賭けます。</p>
+      <ul>
+        <li>「成功」に賭けて当たると <b>+${RULES.free.betSuccess}点</b>。</li>
+        <li>「失敗」に賭けて当たると、<b>宣言した数の半分</b>（切り上げ）。7個の宣言なら +4点です。</li>
+      </ul>
       <h3>4. 挑戦</h3>
       <ul>
         <li><b>まず自分の皿</b>を、手前から食べます（${SLOTS}個まで）。</li>

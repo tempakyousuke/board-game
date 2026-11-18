@@ -28,19 +28,21 @@ export const SLOTS = 3;
 // わさびを食べさせた人の得点は trapGain() のとおり。
 // (失敗 −3点・仕込んだ人 +3点の固定だと、CPU 同士の試算で、わさびを入れない人の得点が
 //  入れた人の2倍になり、仕込むうまみがなかった。)
-export const BET_REWARD = 1;
 
 // 得点の決まり (ゲームごと)。
 //   trap: わさびを食べさせた人の得点。'eaten' = 挑戦者がそこまでに食べた数 / 'none' = なし
 //   betSuccess, betFail: 「成功」「失敗」に賭けて当てたときの得点。betFail が 'half' なら、宣言した数の半分 (切り上げ)
 //
+// 賭けは2つのゲームで同じ: 「成功」を当てると +3点、「失敗」を当てると宣言した数の半分。
+// どちらも +1点だったときは、ほぼ全員が「成功」に賭けて差がつかず、賭けの点が点差に占める割合は
+// 1〜2% しかなかった (CPU 同士の試算)。いまの配分だと、たこパで 10〜16%、わさび係で 17〜20% になる。
+//
 // わさび係はだれだ では、係への加点をなくしている。係は選べないので、係になった回数の多い人が得をしていた
-// (CPU 同士の試算で、係が1回ふえるごとに 5人で +0.5点、6人で +0.9点)。
-// そのかわり賭けの点を大きくして、係は「失敗」に賭けることで稼ぐ。賭けの点が点差に占める割合は、
-// 当たり +1点のときの 1〜2% から、17〜20% になる。
+// (係が1回ふえるごとに 5人で +0.5点、6人で +0.9点)。係は「失敗」に賭けることで稼ぐ。
+const BETS = { betSuccess: 3, betFail: 'half' };
 export const RULES = {
-  free: { trap: 'eaten', betSuccess: BET_REWARD, betFail: BET_REWARD },
-  role: { trap: 'none', betSuccess: 3, betFail: 'half' },
+  free: { trap: 'eaten', ...BETS },
+  role: { trap: 'none', ...BETS },
 };
 // 親が全員に同じ回数まわるようにする。
 export const ROUNDS_BY_PLAYERS = { 3: 6, 4: 8, 5: 5, 6: 6 };
@@ -455,7 +457,8 @@ function botBet(state, seat, rng) {
     if (others.length > 0) {
       const density = others.reduce((sum, s) => sum + belief[s][1] + belief[s][2] + belief[s][3], 0) / (others.length * SLOTS);
       // 挑戦者は読んで選ぶので、でたらめに食べるよりは当たりにくい。
-      odds *= (1 - density * 0.7) ** extra;
+      // (自由に仕込むたこパでは、宣言のしかたから避けられる皿が多く、見込みよりよく成功する。)
+      odds *= (1 - density * (state.mode === 'role' ? 0.7 : 0.4)) ** extra;
     }
     if (mine > 0) {
       // 自分の皿が、わさびのところまで食べられそうか。1皿あたりの食べられる深さから見積もる。
