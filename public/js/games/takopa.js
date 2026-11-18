@@ -213,14 +213,16 @@ export function Board({ view, seat, players, act }) {
                 ? `成功！ ${name(c)}に +${view.need}点`
                 : view.outcome.hit === c
                   ? `自滅… ${name(c)}は −${view.need}点`
-                  : `わさび！ ${name(c)}の ${view.need}点が、${name(view.outcome.hit)}へ`}
+                  : role
+                    ? `わさび！ ${name(c)}の ${view.need}点が、${name(view.outcome.hit)}へ`
+                    : `わさび！ ${name(c)}は −${view.need}点。${name(view.outcome.hit)}に +${eatenTotal}点（食べた数）`}
             </p>
             ${phase === 'result' && seat >= 0 && html`<button class="btn btn-primary btn-block" onClick=${() => act({ type: 'next' })}>つぎのラウンドへ</button>`}
           </div>
         `}
 
         <p class="tb-legend">
-          食べきれば宣言した数が得点。わさびに当たると、宣言した数だけ失点して、仕込んだ人の得点に。賭けが当たると +${view.betReward}点。
+          食べきれば宣言した数が得点。わさびに当たると、宣言した数だけ失点。${role ? 'その点は、わさび係のものに。' : '仕込んだ人には、挑戦者が食べた数だけ得点。'}賭けが当たると +${view.betReward}点。
         </p>
       </div>
     </div>
@@ -255,7 +257,10 @@ function Rules() {
       <h3>得点</h3>
       <ul>
         <li><b>成功</b>：宣言した数が、そのまま得点。</li>
-        <li><b>失敗</b>：宣言した数だけ失点。その点は、<b>わさびを仕込んだ人</b>のものになります。</li>
+        <li><b>失敗</b>：宣言した数だけ失点します。</li>
+        <li>
+          <b>わさびを仕込んだ人</b>：挑戦者が<b>そこまでに食べた数</b>（わさび入りの1個もふくむ）が得点になります。大きく宣言させても、早く当たれば少しです。
+        </li>
         <li>自分のわさびを自分で食べたら、失点するだけです。</li>
       </ul>
       <h3>終了</h3>

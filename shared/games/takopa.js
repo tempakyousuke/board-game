@@ -4,7 +4,8 @@
 // 2. 宣言: 親から順に「◯個食べられる」と数を上げるか、パスする。最後まで残った人が挑戦者。
 // 3. 賭け: 挑戦者以外の全員が、同時にこっそり「成功 / 失敗」に賭ける。
 // 4. 挑戦: まず自分の皿を手前から食べ、足りないぶんは他の人の皿を手前から1個ずつ食べる。
-//    食べきれば宣言した数が得点。わさびに当たると、宣言した数だけ失点し、その点は仕込んだ人のものになる。
+//    食べきれば宣言した数が得点。わさびに当たると、宣言した数だけ失点する。
+//    仕込んだ人には、挑戦者がそこまでに食べた数 (わさび入りの1個もふくむ) が得点として入る。
 //
 // 「わさび係はだれだ」(wasabi.js) も同じ進め方で、わさびを入れるのが毎回ランダムな1人だけになる。
 
@@ -23,8 +24,8 @@ export const meta = {
 };
 
 export const SLOTS = 3;
-// 宣言した数が、そのまま賭け金になる: 成功すれば +宣言した数、失敗すれば −宣言した数で、
-// その点はわさびを仕込んだ人のものになる。
+// 宣言した数が、そのまま賭け金になる: 成功すれば +宣言した数、失敗すれば −宣言した数。
+// わさびを食べさせた人の得点は trapGain() のとおり。
 // (失敗 −3点・仕込んだ人 +3点の固定だと、CPU 同士の試算で、わさびを入れない人の得点が
 //  入れた人の2倍になり、仕込むうまみがなかった。)
 export const BET_REWARD = 1;
@@ -180,6 +181,15 @@ export function act(state, seat, action, rng) {
   }
 }
 
+/**
+ * わさびを食べさせた人の得点。
+ * ロシアンたこパ: 挑戦者がそこまでに食べた数 (わさび入りの1個もふくむ)。大きく宣言させても、早く当たれば少ない。
+ * わさび係はだれだ: 宣言した数。
+ */
+export function trapGain(state) {
+  return state.mode === 'free' ? state.log.length : state.need;
+}
+
 function settle(state, success, hit) {
   const c = state.challenger;
   const gains = fill(state.n, 0);
@@ -189,7 +199,7 @@ function settle(state, success, hit) {
   } else {
     gains[c] -= state.need;
     if (hit !== c) {
-      gains[hit] += state.need;
+      gains[hit] += trapGain(state);
       state.traps[hit]++;
     }
   }

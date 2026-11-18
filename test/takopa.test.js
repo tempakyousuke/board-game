@@ -135,15 +135,24 @@ test('takopa: まず自分の皿を手前から食べ、足りないぶんは他
   assert.deepEqual(view.bets, [null, true, false]);
 });
 
-test('takopa: わさびに当たると、宣言した数が仕込んだ人へ移る。自分のわさびなら失うだけ', () => {
+test('takopa: わさびに当たると宣言した数だけ失点。仕込んだ人には、挑戦者が食べた数だけ入る', () => {
   const { state, rng } = table([0, 2, 0]);
-  challenge(state, rng, 5, [false, true]);
+  challenge(state, rng, 7, [false, true]);
   for (let k = 0; k < SLOTS; k++) eat(state, rng, 0);
   eat(state, rng, 1); // 席1の1番目は安全
   assert.equal(state.phase, 'eat');
   eat(state, rng, 1); // 2番目がわさび
   assert.equal(state.phase, 'result');
-  assert.deepEqual(state.outcome, { success: false, hit: 1, gains: [-5, 5 + BET_REWARD, 0] });
+  // 7個と宣言して、5個目でわさび: 挑戦者は −7点。仕込んだ席1 には、食べた 5個ぶん (と、賭けの +1)。
+  assert.deepEqual(state.outcome, { success: false, hit: 1, gains: [-7, 5 + BET_REWARD, 0] });
+  assert.equal(game.trapGain(state), 5);
+
+  // 自分の皿を食べ終えて、すぐ次の1個で当たった: 食べたのは 4個。
+  const early = table([0, 1, 0]);
+  challenge(early.state, early.rng, 8, [true, true]);
+  for (let k = 0; k < SLOTS; k++) eat(early.state, early.rng, 0);
+  eat(early.state, early.rng, 1);
+  assert.deepEqual(early.state.outcome, { success: false, hit: 1, gains: [-8, 4, 0] });
   assert.deepEqual(state.traps, [0, 1, 0]);
   assert.deepEqual(state.hits, [0, 1, 0]);
 
@@ -248,6 +257,20 @@ test('wasabi: 係に当たると、宣言した数が係のものになり、結
   assert.equal(state.outcome.hit, t);
   assert.equal(state.outcome.gains[c], -4);
   assert.equal(state.outcome.gains[t], 4 + BET_REWARD, '係は「失敗」に賭けていたので、その分も入る');
+
+  // わさび係はだれだ では、係に入るのは「宣言した数」のまま (食べた数ではない)。
+  const deep = role.setup({ n: 4, rng });
+  for (let s = 0; s < 4; s++) role.act(deep, s, { type: 'plate', slot: 1 }, rng);
+  const dt = deep.trapper;
+  const dc = (dt + 1) % 4;
+  deep.turn = dc;
+  role.act(deep, dc, { type: 'bid', amount: 9 }, rng);
+  for (let k = 1; k < 4; k++) role.act(deep, (dc + k) % 4, { type: 'pass' }, rng);
+  for (let k = 1; k < 4; k++) role.act(deep, (dc + k) % 4, { type: 'bet', success: true }, rng);
+  for (let k = 0; k < SLOTS; k++) role.act(deep, dc, { type: 'eat', plate: dc }, rng);
+  role.act(deep, dc, { type: 'eat', plate: dt }, rng);
+  assert.equal(deep.outcome.gains[dc], -9);
+  assert.equal(deep.outcome.gains[dt], 9);
   assert.equal(role.view(state, -1).trapper, t);
 });
 
