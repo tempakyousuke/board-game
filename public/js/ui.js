@@ -88,6 +88,9 @@ export const GAME_ART = {
   dauto: { bg: 'linear-gradient(160deg,#2f9486,#1b5a5e)', fg: '#fff', icons: ['🎲', '🤥'] },
   tobiishi: { bg: 'linear-gradient(160deg,#7fc8d8,#3a7ca5)', fg: '#06324a', icons: ['🌀', '🐸'] },
   fukikobore: { bg: 'linear-gradient(160deg,#f6b26b,#d9603b)', fg: '#4a1d0a', icons: ['🍲', '💦'] },
+  takopa: { bg: 'linear-gradient(160deg,#c9853f,#8a4b1f)', fg: '#fff', icons: ['🐙', '😵'] },
+  wasabi: { bg: 'linear-gradient(160deg,#9bc65a,#4f8a2b)', fg: '#16330a', icons: ['🕵️', '🐙'] },
+  tsumiage: { bg: 'linear-gradient(160deg,#b9a3d9,#6b4fa3)', fg: '#fff', icons: ['🗼', '❓'] },
 };
 
 /**

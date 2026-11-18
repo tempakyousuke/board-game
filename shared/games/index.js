@@ -17,6 +17,9 @@ import * as ohajiki from './ohajiki.js';
 import * as dauto from './dauto.js';
 import * as tobiishi from './tobiishi.js';
 import * as fukikobore from './fukikobore.js';
+import * as takopa from './takopa.js';
+import * as wasabi from './wasabi.js';
+import * as tsumiage from './tsumiage.js';
 
-export const GAMES = { toudai, gottsunko, dokan, korokoro, bento, tataki, hitsuji, ninja, noronoro, hatake, docchi, obake, ohajiki, dauto, tobiishi, fukikobore };
+export const GAMES = { toudai, gottsunko, dokan, korokoro, bento, tataki, hitsuji, ninja, noronoro, hatake, docchi, obake, ohajiki, dauto, tobiishi, fukikobore, takopa, wasabi, tsumiage };
 export const GAME_LIST = Object.values(GAMES).map((g) => g.meta);
