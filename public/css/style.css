@@ -5004,8 +5004,12 @@ button.game-card-main {
   gap: 6px;
 }
 .bd-pick {
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  color: #fff;
   border: 2px solid rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.1);
   border-radius: 14px;
@@ -5097,14 +5101,14 @@ button.game-card-main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   border: 2px solid var(--line-deep);
   background: var(--paper);
   color: var(--ink);
   border-radius: 12px;
-  padding: 16px 4px 6px;
+  padding: 4px 4px 5px;
   cursor: pointer;
-  min-height: 74px;
+  min-height: 112px;
 }
 .bd-card.is-big {
   background: #fff3d6;
@@ -5121,10 +5125,7 @@ button.game-card-main {
   opacity: 0.55;
 }
 .bd-vp {
-  position: absolute;
-  top: 2px;
-  right: 5px;
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   font-weight: 800;
   color: var(--accent-deep);
 }
@@ -5181,10 +5182,10 @@ button.game-card-main {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 12px 7px;
   background: #e9dfc9;
   border-radius: 12px;
-  padding: 8px 6px;
+  padding: 14px 8px 8px;
 }
 .bd-in,
 .bd-out {
@@ -5196,13 +5197,15 @@ button.game-card-main {
 .bd-machine {
   position: relative;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   background: #fff;
   border: 2px solid #b9a98a;
   border-radius: 10px;
-  padding: 9px 6px 5px;
-  min-width: 54px;
+  padding: 7px 6px 3px;
+  min-width: 58px;
   box-shadow: 0 2px 0 #b9a98a;
 }
 .bd-machine.is-big {
@@ -5210,12 +5213,19 @@ button.game-card-main {
   border-color: #d9a441;
   box-shadow: 0 2px 0 #d9a441;
 }
-.bd-machine small {
+.bd-no {
   position: absolute;
-  top: 0;
-  left: 4px;
-  font-size: 0.56rem;
-  color: var(--ink-soft);
+  top: -7px;
+  left: -5px;
+  min-width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 800;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 999px;
 }
 .bd-machine.is-will {
   box-shadow: 0 0 0 2px #ffd166;
@@ -5340,6 +5350,190 @@ button.game-card-main {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
+}
+
+/* 案内と名前: 記号だけに頼らず、言葉でもわかるようにする。 */
+.bd-how {
+  text-align: center;
+  font-size: 0.86rem;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 5px 8px;
+}
+.bd-how b {
+  color: #ffd166;
+}
+.bd-sec {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+.bd-sec-no {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  border-radius: 50%;
+  background: #ffd166;
+  color: #2f3a4d;
+  font-size: 0.9rem;
+}
+.bd-pick small {
+  font-size: 0.66rem;
+  font-weight: 700;
+  opacity: 0.9;
+}
+.bd-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 2px;
+}
+.bd-kind {
+  font-style: normal;
+  font-size: 0.62rem;
+  font-weight: 800;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 0 6px;
+  background: #e7dcc4;
+  color: var(--ink-soft);
+}
+.is-star > .bd-kind,
+.is-star .bd-card-top .bd-kind {
+  background: #ffe9a8;
+  color: #8a5a00;
+}
+.is-paint > .bd-kind,
+.is-paint .bd-card-top .bd-kind {
+  background: #e6dbff;
+  color: #5b3da8;
+}
+.is-bonus > .bd-kind,
+.is-bonus .bd-card-top .bd-kind {
+  background: #d3f1da;
+  color: var(--green-deep);
+}
+.bd-machine.is-ghost > .bd-kind {
+  background: var(--accent);
+  color: #fff;
+}
+.bd-say {
+  font-size: 0.64rem;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--ink);
+  min-height: 2.5em;
+}
+.bd-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.bd-price small {
+  font-size: 0.58rem;
+  color: var(--ink-soft);
+}
+.bd-afford {
+  font-size: 0.6rem;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 0 6px;
+  background: #e7dcc4;
+  color: var(--ink-soft);
+}
+.bd-afford.is-ok {
+  background: var(--green);
+  color: #fff;
+}
+.bd-card.is-poor {
+  opacity: 0.72;
+}
+.bd-rolling {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: pop 0.3s ease-out;
+  z-index: 1;
+}
+.bd-in .bd-ball {
+  animation: pop 0.3s ease-out;
+}
+.bd-mine-head span {
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}
+.bd-traybox {
+  flex-wrap: wrap;
+}
+.bd-traybox small {
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+.bd-traylabel {
+  white-space: nowrap;
+}
+.bd-traylabel.is-now {
+  color: var(--accent-deep);
+}
+.bd-total {
+  margin-left: auto;
+  font-size: 0.84rem;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.bd-hint {
+  text-align: center;
+  font-size: 0.82rem;
+  background: #fff3c9;
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+.bd-story {
+  background: #f4ecdb;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 0.84rem;
+}
+.bd-story ol {
+  margin: 4px 0 4px 1.4em;
+  padding: 0;
+}
+.bd-story li {
+  margin: 2px 0;
+}
+.bd-story li.is-star {
+  font-weight: 800;
+  color: #8a5a00;
+}
+.bd-story li.is-land {
+  color: var(--ink-soft);
+}
+.bd-story p {
+  font-weight: 700;
+}
+.bd-story .bd-cost {
+  vertical-align: middle;
+}
+.bd-story.is-live li:last-child {
+  animation: rise 0.25s ease-out;
+}
+.bd-others-title {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.bd-kinds .bd-machine {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.bd-rules .bd-example {
+  padding-top: 8px;
+  gap: 8px;
 }
 
 /* ---- アニメーション ---------------------------------------------------- */
