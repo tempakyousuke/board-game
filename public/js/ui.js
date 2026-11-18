@@ -91,6 +91,7 @@ export const GAME_ART = {
   takopa: { bg: 'linear-gradient(160deg,#c9853f,#8a4b1f)', fg: '#fff', icons: ['🐙', '😵'] },
   wasabi: { bg: 'linear-gradient(160deg,#9bc65a,#4f8a2b)', fg: '#16330a', icons: ['🕵️', '🐙'] },
   tsumiage: { bg: 'linear-gradient(160deg,#b9a3d9,#6b4fa3)', fg: '#fff', icons: ['🗼', '❓'] },
+  bidama: { bg: 'linear-gradient(160deg,#5f6f86,#2f3a4d)', fg: '#fff', icons: ['🔮', '⚙️'] },
 };
 
 /**

@@ -4965,6 +4965,383 @@ button.game-card-main {
   box-shadow: 0 3px 0 #7fb53c;
 }
 
+/* ---- ビーだま工場 ------------------------------------------------------ */
+
+.bd-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bd-market,
+.bd-mine {
+  border-radius: var(--radius);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--shadow);
+}
+.bd-market {
+  background: linear-gradient(160deg, #56657c, #2f3a4d);
+  color: #fff;
+}
+.bd-market-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}
+.bd-market-head b {
+  font-size: 0.9rem;
+}
+.bd-market-head span {
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+.bd-marbles {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+.bd-pick {
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 6px 0;
+  cursor: pointer;
+  min-height: 48px;
+}
+.bd-pick.is-on {
+  border-color: #ffd166;
+  background: rgba(255, 209, 102, 0.25);
+  box-shadow: 0 0 0 2px #ffd166;
+}
+.bd-pick:disabled {
+  cursor: default;
+}
+
+/* 玉。色に加えて、中の形でも見分けられる。 */
+.bd-ball {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 11px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    inset -2px -3px 0 rgba(0, 0, 0, 0.2),
+    inset 2px 2px 0 rgba(255, 255, 255, 0.35);
+  flex: none;
+  vertical-align: middle;
+}
+.bd-ball-xs {
+  width: 15px;
+  height: 15px;
+  font-size: 8px;
+}
+.bd-ball-sm {
+  width: 19px;
+  height: 19px;
+  font-size: 10px;
+}
+.bd-ball-lg {
+  width: 32px;
+  height: 32px;
+  font-size: 15px;
+}
+.bd-ball.c0 {
+  background: #e5484d;
+}
+.bd-ball.c1 {
+  background: #3e63dd;
+}
+.bd-ball.c2 {
+  background: #e8a100;
+}
+.bd-ball.c3 {
+  background: #2f9e44;
+}
+.bd-ball.is-any {
+  background: conic-gradient(#e5484d, #e8a100, #2f9e44, #3e63dd, #e5484d);
+  color: #fff;
+}
+.bd-hole {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.12);
+  flex: none;
+}
+.bd-hole.bd-ball-xs {
+  width: 15px;
+  height: 15px;
+}
+.bd-hole.bd-ball-sm {
+  width: 19px;
+  height: 19px;
+}
+
+.bd-shop {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.bd-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  border: 2px solid var(--line-deep);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 12px;
+  padding: 16px 4px 6px;
+  cursor: pointer;
+  min-height: 74px;
+}
+.bd-card.is-big {
+  background: #fff3d6;
+  border-color: #d9a441;
+}
+.bd-card.is-on {
+  border-color: var(--accent-deep);
+  box-shadow: 0 0 0 3px var(--accent);
+}
+.bd-card:disabled {
+  cursor: default;
+}
+.bd-card.is-poor {
+  opacity: 0.55;
+}
+.bd-vp {
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--accent-deep);
+}
+.bd-effect {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.bd-effect.is-none {
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}
+.bd-arrow {
+  font-style: normal;
+  font-size: 0.6rem;
+  color: var(--ink-soft);
+}
+.bd-star {
+  color: #d98a00;
+  font-weight: 800;
+}
+.bd-plus {
+  font-size: 0.8rem;
+  color: var(--green-deep);
+}
+.bd-cost {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+}
+
+.bd-mine {
+  background: var(--paper);
+  border: 2px solid var(--line);
+}
+.bd-mine-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 0.85rem;
+}
+.bd-flying {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+.bd-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  background: #e9dfc9;
+  border-radius: 12px;
+  padding: 8px 6px;
+}
+.bd-in,
+.bd-out {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.bd-machine {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 2px solid #b9a98a;
+  border-radius: 10px;
+  padding: 9px 6px 5px;
+  min-width: 54px;
+  box-shadow: 0 2px 0 #b9a98a;
+}
+.bd-machine.is-big {
+  background: #fff3d6;
+  border-color: #d9a441;
+  box-shadow: 0 2px 0 #d9a441;
+}
+.bd-machine small {
+  position: absolute;
+  top: 0;
+  left: 4px;
+  font-size: 0.56rem;
+  color: var(--ink-soft);
+}
+.bd-machine.is-will {
+  box-shadow: 0 0 0 2px #ffd166;
+}
+.bd-machine.is-fired {
+  background: #dff5e4;
+  border-color: var(--green);
+}
+.bd-machine.is-now {
+  animation: pop 0.3s ease-out;
+  box-shadow: 0 0 0 3px var(--green);
+}
+.bd-machine.is-ghost {
+  border-style: dashed;
+  border-color: var(--accent-deep);
+  background: #ffe7dc;
+}
+.bd-machine.is-fresh {
+  animation: pop 0.35s ease-out;
+  border-color: var(--accent-deep);
+}
+.bd-slot {
+  width: 26px;
+  height: 34px;
+  border: 2px dashed var(--accent-deep);
+  background: #fff;
+  color: var(--accent-deep);
+  border-radius: 8px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+}
+.bd-traybox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.bd-tray {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #e9dfc9;
+  border-radius: 999px;
+  padding: 3px 6px;
+}
+.bd-preview {
+  text-align: center;
+  font-size: 0.85rem;
+  background: #f4ecdb;
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+.bd-preview .bd-cost {
+  vertical-align: middle;
+}
+.bd-others {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bd-other {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #f4ecdb;
+  border-radius: 10px;
+  padding: 6px 8px;
+}
+.bd-other-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+.bd-other-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bd-other-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.bd-mini {
+  display: inline-flex;
+  background: #fff;
+  border: 1.5px solid #c9b995;
+  border-radius: 7px;
+  padding: 2px 4px;
+  font-size: 0.7rem;
+}
+.bd-mini.is-big {
+  background: #fff3d6;
+  border-color: #d9a441;
+}
+.bd-other-last {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}
+.bd-kinds {
+  list-style: none;
+  padding-left: 0;
+}
+.bd-kinds li {
+  margin: 6px 0;
+}
+.bd-kinds .bd-effect,
+.bd-example .bd-machine {
+  margin-right: 6px;
+}
+.bd-example {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
 /* ---- アニメーション ---------------------------------------------------- */
 
 @keyframes spin {
