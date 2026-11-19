@@ -1,7 +1,7 @@
 // たたき売り！の盤面。
 
 import { html, useEffect, useRef, cx } from '../lib.js';
-import { CATEGORIES, CATEGORY_IDS, SET_BONUS, START_COINS } from '/shared/games/tataki.js';
+import { CATEGORIES, SET_BONUS, SET_KINDS, START_COINS, categoriesFor } from '/shared/games/tataki.js';
 import { Avatar } from '../ui.js';
 import { play, useChanged } from '../sound.js';
 
@@ -128,12 +128,14 @@ function Board({ view, seat, players, act }) {
                   ${view.bought[s].map((b, i) => html`<${ItemChip} key=${i} item=${b} fav=${b.cat === view.fav[s]} />`)}
                   ${view.bought[s].length === 0 && html`<small class="muted">まだ何も買っていません</small>`}
                 </span>
-                ${kinds === CATEGORY_IDS.length && html`<span class="tk-row-set">4種類 +${SET_BONUS}</span>`}
+                ${kinds >= SET_KINDS && html`<span class="tk-row-set">${SET_KINDS}種類 +${SET_BONUS}</span>`}
               </div>
             `;
           })}
         </div>
-        <p class="muted tk-note">♥ はお目当て（点数2倍）。4種類そろえると +${SET_BONUS}点。コインは点になりません。</p>
+        <p class="muted tk-note">
+          ♥ はお目当て（点数2倍）。全員ちがう種類です。${view.cats.length > SET_KINDS ? `品物は ${view.cats.length}種類。そのうち ` : ''}${SET_KINDS}種類そろえると +${SET_BONUS}点。コインは点になりません。
+        </p>
       </div>
     </div>
   `;
@@ -157,8 +159,12 @@ function Rules() {
       <h3>得点</h3>
       <ul>
         <li>買った品物に書かれた点数が、そのまま得点です。</li>
-        <li>自分の<b>「お目当て」</b>の種類の品物は<b>点数が2倍</b>になります。お目当ては全員に見えています。</li>
-        <li>4種類（${CATEGORY_IDS.map((id) => CATEGORIES[id].emoji).join('')}）をすべてそろえると <b>+${SET_BONUS}点</b>。</li>
+        <li>自分の<b>「お目当て」</b>の種類の品物は<b>点数が2倍</b>になります。お目当ては<b>全員ちがう種類</b>で、全員に見えています。</li>
+        <li>
+          品物はふつう 4種類（${categoriesFor(4).map((id) => CATEGORIES[id].emoji).join('')}）。5人で遊ぶときは ${CATEGORIES[categoriesFor(5)[4]].emoji}、6人で遊ぶときは
+          ${CATEGORIES[categoriesFor(6)[5]].emoji} も加わります。
+        </li>
+        <li>ちがう種類を <b>${SET_KINDS}種類</b>そろえると <b>+${SET_BONUS}点</b>。</li>
         <li>🎁 <b>福袋</b>は、買うまで中身がわかりません（2〜6点のどれか）。</li>
       </ul>
       <h3>終了</h3>

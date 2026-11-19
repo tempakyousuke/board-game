@@ -7,7 +7,7 @@ import { GAMES } from '../shared/games/index.js';
 import { GameError } from '../shared/games/common.js';
 import { mulberry32 } from '../shared/rng.js';
 import { scoreBox, scoreAll, HAND_SIZE } from '../shared/games/bento.js';
-import { pointsOf, START_COINS, SET_BONUS } from '../shared/games/tataki.js';
+import { pointsOf, categoriesFor, START_COINS, SET_BONUS, SET_KINDS } from '../shared/games/tataki.js';
 
 // ---- つめつめ弁当 ----------------------------------------------------------
 
@@ -163,6 +163,34 @@ test('tataki: お目当ては2倍、4種類そろえるとボーナス、福袋�
   view = game.view(state, 0);
   assert.equal(view.item.value, 6, '買われたら中身がわかる');
   assert.equal(view.lastSale.item.cat, 'gakki');
+});
+
+test('tataki: お目当ては全員ちがう種類。そのために、品物の種類を人数に合わせる', () => {
+  const game = GAMES.tataki;
+  assert.equal(SET_KINDS, 4);
+  for (let n = 2; n <= 6; n++) {
+    for (let seed = 1; seed <= 30; seed++) {
+      const state = game.setup({ n, rng: mulberry32(seed * 13 + n) });
+      // 4人までは4種類、5人なら5種類、6人なら6種類。
+      assert.equal(state.cats.length, Math.max(4, n));
+      assert.deepEqual(state.cats, categoriesFor(n));
+      assert.equal(new Set(state.fav).size, n, 'お目当てがかぶる人はいない');
+      assert.ok(state.fav.every((cat) => state.cats.includes(cat)));
+      // 品物の数は、3人までは12個、それより多ければ 1人につき4個 (福袋をふくむ)。
+      assert.equal(state.items.length, n <= 3 ? 12 : n * 4);
+      assert.ok(state.items.every((item) => state.cats.includes(item.cat)));
+      assert.deepEqual(game.view(state, 0).cats, state.cats);
+    }
+  }
+  // 6種類あっても、ボーナスは4種類そろえたとき。5種類目からは増えない。
+  const state = game.setup({ n: 6, rng: mulberry32(3) });
+  state.fav[0] = 'boushi';
+  state.bought[0] = ['tsubo', 'e', 'tokei'].map((cat) => ({ cat, value: 1 }));
+  assert.equal(pointsOf(state, 0), 3);
+  state.bought[0].push({ cat: 'boushi', value: 2 });
+  assert.equal(pointsOf(state, 0), 3 + 4 + SET_BONUS, 'お目当ては2倍、4種類目でボーナス');
+  state.bought[0].push({ cat: 'gakki', value: 1 });
+  assert.equal(pointsOf(state, 0), 3 + 4 + 1 + SET_BONUS);
 });
 
 // ---- のろのろレース --------------------------------------------------------

@@ -3,7 +3,8 @@
 // ・品物が1つずつ出てきて、値段が1秒ごとに1コインずつ下がっていく。
 // ・最初に「買う！」を押した人が、そのときの値段で手に入れる。だれも買わなければ売れ残り。
 // ・品物の点数がそのまま得点。自分の「お目当て」の種類なら2倍。
-// ・4種類すべてそろえるとボーナス。コインは点にならないので、上手に使い切りたい。
+// ・お目当ては全員ちがう種類。そのために、品物の種類は人数に合わせる (4人までは4種類、5人なら5種類、6人なら6種類)。
+// ・4種類そろえるとボーナス。コインは点にならないので、上手に使い切りたい。
 //
 // 番のないリアルタイムのゲームなので、時間の進行は timer() と tick() でサーバーの時計にまかせる。
 
@@ -27,8 +28,22 @@ export const CATEGORIES = {
   e: { emoji: '🖼️', name: '絵' },
   yubiwa: { emoji: '💍', name: 'ゆびわ' },
   gakki: { emoji: '🎻', name: 'バイオリン' },
+  // ここから下は、5人・6人で遊ぶときだけ出てくる。
+  tokei: { emoji: '🕰️', name: 'とけい' },
+  boushi: { emoji: '🎩', name: 'ぼうし' },
 };
 export const CATEGORY_IDS = Object.keys(CATEGORIES);
+export const SET_KINDS = 4; // この数の種類をそろえるとボーナス
+
+/**
+ * その人数で出てくる品物の種類。
+ * お目当てが同じ人がいると、その2人だけ取り合いになって不利になる
+ * (4種類のまま5〜6人で遊ぶと、CPU 同士の勝率が かぶった人 13%・かぶらない人 25% に分かれた)。
+ * だから、種類の数を人数に合わせて、お目当てが全員ちがうようにする。
+ */
+export function categoriesFor(n) {
+  return CATEGORY_IDS.slice(0, Math.max(SET_KINDS, n));
+}
 
 export const START_COINS = 20;
 export const SET_BONUS = 5;
@@ -44,9 +59,11 @@ function startPrice(item) {
 }
 
 export function setup({ n, rng }) {
-  const perCategory = Math.max(3, n);
+  const cats = categoriesFor(n);
+  // 品物の数は、3人までは12個、それより多ければ 1人につき4個。
+  const perCategory = n <= 3 ? 3 : 4;
   let items = [];
-  for (const cat of CATEGORY_IDS) {
+  for (const cat of cats) {
     const values = shuffle(rng, VALUE_BAG).slice(0, perCategory);
     for (const value of values) items.push({ cat, value, lucky: false });
   }
@@ -54,23 +71,23 @@ export function setup({ n, rng }) {
   // 6つに1つくらいは、中身のわからない福袋にする。
   const luckyCount = Math.round(items.length / 6);
   for (let k = 0; k < luckyCount; k++) {
-    items[k] = { cat: CATEGORY_IDS[randInt(rng, CATEGORY_IDS.length)], value: LUCKY_VALUES[randInt(rng, LUCKY_VALUES.length)], lucky: true };
+    items[k] = { cat: cats[randInt(rng, cats.length)], value: LUCKY_VALUES[randInt(rng, LUCKY_VALUES.length)], lucky: true };
   }
   items = shuffle(rng, items);
 
-  // お目当てはなるべくばらけさせる (5人以上だと同じお目当ての人が出てくる)。
-  const order = shuffle(rng, CATEGORY_IDS);
-  const fav = Array.from({ length: n }, (_, s) => order[s % order.length]);
+  // お目当ては全員ちがう種類にする。
+  const fav = shuffle(rng, cats).slice(0, n);
 
   return {
     n,
+    cats,
     items,
     lot: 0,
     phase: 'intro', // intro: 品物のお披露目 / falling: 値下がり中 / sold: 結果の表示
     price: startPrice(items[0]),
     coins: new Array(n).fill(START_COINS),
     bought: Array.from({ length: n }, () => []),
-    fav: shuffle(rng, fav),
+    fav,
     lastSale: null,
     nerve: Array.from({ length: n }, () => rng()),
     over: false,
@@ -86,7 +103,7 @@ export function pointsOf(state, seat) {
   const items = state.bought[seat];
   const base = items.reduce((sum, item) => sum + worthTo(state, seat, item), 0);
   const kinds = new Set(items.map((item) => item.cat)).size;
-  return base + (kinds === CATEGORY_IDS.length ? SET_BONUS : 0);
+  return base + (kinds >= SET_KINDS ? SET_BONUS : 0);
 }
 
 /** サーバーの時計に「何ミリ秒後に tick を呼んでほしいか」を伝える。 */
@@ -166,6 +183,7 @@ export function view(state) {
     coins: state.coins,
     bought: state.bought,
     fav: state.fav,
+    cats: state.cats,
     points: state.coins.map((_, s) => pointsOf(state, s)),
     lastSale: state.lastSale && { ...state.lastSale, item: state.lastSale.seat >= 0 ? state.lastSale.item : mask(state.lastSale.item) },
     tickMs: TICK_MS,
@@ -191,7 +209,7 @@ export function bot(state, seat) {
   let worth = item.lucky ? 4.5 : worthTo(state, seat, item);
   // 4種類そろえるボーナスに近づくなら、そのぶん高く買ってよい。
   const kinds = new Set(state.bought[seat].map((b) => b.cat));
-  if (!item.lucky && !kinds.has(item.cat)) worth += SET_BONUS / CATEGORY_IDS.length;
+  if (!item.lucky && !kinds.has(item.cat) && kinds.size < SET_KINDS) worth += SET_BONUS / SET_KINDS;
 
   // これから出る品物に対して手持ちが多いほど、強気に買う。
   const expectedShare = Math.max(1, remaining / state.n);
