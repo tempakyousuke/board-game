@@ -22,8 +22,9 @@ import wasabi from './wasabi.js';
 import tsumiage from './tsumiage.js';
 import bidama from './bidama.js';
 import kottou from './kottou.js';
+import hakoniwa from './hakoniwa.js';
 
-const SCREENS = { toudai, gottsunko, dokan, korokoro, bento, tataki, hitsuji, ninja, noronoro, hatake, docchi, obake, ohajiki, dauto, tobiishi, fukikobore, takopa, wasabi, tsumiage, bidama, kottou };
+const SCREENS = { toudai, gottsunko, dokan, korokoro, bento, tataki, hitsuji, ninja, noronoro, hatake, docchi, obake, ohajiki, dauto, tobiishi, fukikobore, takopa, wasabi, tsumiage, bidama, kottou, hakoniwa };
 
 export const GAME_UI = Object.fromEntries(
   Object.keys(GAMES).map((id) => [id, { meta: GAMES[id].meta, ...SCREENS[id] }]),

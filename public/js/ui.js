@@ -92,6 +92,7 @@ export const GAME_ART = {
   wasabi: { bg: 'linear-gradient(160deg,#9bc65a,#4f8a2b)', fg: '#16330a', icons: ['🕵️', '🐙'] },
   tsumiage: { bg: 'linear-gradient(160deg,#b9a3d9,#6b4fa3)', fg: '#fff', icons: ['🗼', '❓'] },
   bidama: { bg: 'linear-gradient(160deg,#5f6f86,#2f3a4d)', fg: '#fff', icons: ['🔮', '⚙️'] },
+  hakoniwa: { bg: 'linear-gradient(160deg,#4f7a5a,#27402f)', fg: '#fff', icons: ['⚡', '🌋'] },
   kottou: { bg: 'linear-gradient(160deg,#8a6f4a,#4e3a26)', fg: '#fff', icons: ['🧐', '🏺'] },
 };
 

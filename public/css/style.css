@@ -5810,6 +5810,289 @@ button.game-card-main {
   white-space: nowrap;
 }
 
+/* ---- 神器の箱庭 ----------------------------------------------------------- */
+
+.hn-stage {
+  background: linear-gradient(160deg, #4f7a5a, #27402f);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--shadow);
+}
+.hn-stage.is-makai {
+  background: linear-gradient(160deg, #5b2a55, #1f0f24);
+}
+.hn-board {
+  display: grid;
+  grid-template-columns: repeat(var(--size), 1fr);
+  gap: 4px;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+}
+.hn-cell {
+  position: relative;
+  aspect-ratio: 1;
+  border: 3px solid transparent;
+  border-radius: 12px;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: #cfe3a6;
+  cursor: pointer;
+  overflow: hidden;
+}
+.hn-cell:disabled {
+  cursor: default;
+}
+.hn-cell.is-forest {
+  background: #7fb872;
+}
+.hn-cell.is-mountain {
+  background: #b9a58c;
+}
+.hn-cell.is-spring {
+  background: #9ad4ea;
+}
+.hn-cell.is-ruin {
+  background: #d9cfe6;
+}
+.hn-cell.is-lava {
+  background: #f08a4b;
+}
+.hn-cell.is-makai {
+  background: #7a3b78;
+}
+.hn-cell.is-wall {
+  background: #6f6a66;
+}
+.hn-terrain {
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  opacity: 0.9;
+}
+.hn-cell.is-move {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px #ffd166 inset;
+  animation: hn-pulse 1.1s ease-in-out infinite;
+}
+.hn-cell.is-soft {
+  border-color: #ffd166;
+}
+.hn-cell.is-hard {
+  border-color: #ff5a4f;
+  box-shadow: 0 0 0 3px rgba(255, 90, 79, 0.55) inset;
+}
+.hn-cell.is-shot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 70, 60, 0.32);
+  pointer-events: none;
+}
+.hn-cell.is-mine {
+  outline: 2px dashed rgba(255, 255, 255, 0.9);
+  outline-offset: -5px;
+}
+@keyframes hn-pulse {
+  50% {
+    box-shadow: 0 0 0 4px #ffd166 inset;
+  }
+}
+.hn-piece {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+.hn-piece b {
+  margin-top: -5px;
+  background: var(--c, #333);
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  z-index: 1;
+}
+.hn-piece.is-turn {
+  filter: drop-shadow(0 0 4px #fff);
+}
+.hn-piece.is-target {
+  animation: hn-shake 0.5s ease-in-out infinite;
+}
+@keyframes hn-shake {
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+.hn-here {
+  text-align: center;
+  font-size: 0.8rem;
+  opacity: 0.95;
+}
+.hn-hand {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 6px;
+}
+.hn-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-align: left;
+  border: 2px solid var(--line-deep);
+  border-left-width: 6px;
+  border-radius: 12px;
+  background: var(--paper);
+  padding: 5px 8px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.hn-card:disabled {
+  cursor: default;
+}
+.hn-card.is-weapon {
+  border-left-color: #d9603b;
+}
+.hn-card.is-guard {
+  border-left-color: #3a7ca5;
+}
+.hn-card.is-heal {
+  border-left-color: var(--green);
+}
+.hn-card.is-miracle {
+  border-left-color: #8a63b0;
+}
+.hn-card.is-dim {
+  opacity: 0.55;
+}
+.hn-card.is-on {
+  border-color: var(--accent-deep);
+  background: #fff1e8;
+  box-shadow: 0 0 0 2px var(--accent) inset;
+}
+.hn-card-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.hn-card-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.hn-card-text b {
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+.hn-card-text small {
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  line-height: 1.3;
+}
+.hn-card-kind {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  writing-mode: vertical-rl;
+}
+.hn-dirs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.hn-dir {
+  border: 2px solid var(--line-deep);
+  border-radius: 999px;
+  background: var(--paper);
+  padding: 4px 14px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.hn-dir.is-on {
+  background: var(--accent);
+  border-color: var(--accent-deep);
+  color: #fff;
+}
+.hn-guard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hn-incoming {
+  text-align: center;
+  font-size: 0.95rem;
+}
+.hn-incoming b.is-minus {
+  color: #b02a2a;
+}
+.hn-incoming b.is-plus {
+  color: var(--green-deep);
+}
+.hn-dead {
+  text-align: center;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+.hn-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.hn-log li.is-new {
+  color: var(--ink);
+  font-weight: 700;
+}
+.hn-log li.is-attack,
+.hn-log li.is-dead,
+.hn-log li.is-makai {
+  color: #b02a2a;
+}
+.hn-legend summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.hn-legend ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.76rem;
+}
+.hn-legend li {
+  display: flex;
+  flex-direction: column;
+}
+.hn-legend li span {
+  color: var(--ink-soft);
+}
+
 /* ---- アニメーション ---------------------------------------------------- */
 
 @keyframes spin {
