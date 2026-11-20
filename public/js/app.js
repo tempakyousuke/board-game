@@ -4,7 +4,7 @@ import { html, render, useState, useEffect, useRef, useCallback, cx } from './li
 import { Connection, getName, setName } from './net.js';
 import { Toasts } from './ui.js';
 import { play, isSoundOn, setSoundOn, onSoundChange } from './sound.js';
-import { isBgmOn, setBgmOn, onBgmChange, currentTrack } from './bgm.js';
+import { isBgmOn, setBgmOn, onBgmChange, currentTrack, getBgmVolume, setBgmVolume } from './bgm.js';
 import { Home } from './home.js';
 import { Lobby, NameForm } from './lobby.js';
 import { GameScreen } from './game.js';
@@ -26,6 +26,65 @@ const GONE_TEXT = {
   kicked: { title: 'ルームから外されました', body: 'ホストがあなたをメンバーから外しました。' },
   error: { title: '参加できませんでした', body: '' },
 };
+
+/** ヘッダーの 🎵。押すと、曲名・音量・止める/流すのパネルが開く。 */
+function BgmControl({ bgm }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  // パネルの外を触るか Esc で閉じる。
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => {
+      if (!wrapRef.current?.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return html`
+    <div class="bgm-wrap" ref=${wrapRef}>
+      <button
+        class=${cx('icon-btn sound-btn bgm-btn', !bgm.on && 'is-off')}
+        onClick=${() => setOpen(!open)}
+        aria-expanded=${open}
+        aria-label="BGM の設定"
+        title=${bgm.on ? `BGM: ${bgm.track ?? 'あり'}` : 'BGM: なし'}
+      >
+        🎵
+      </button>
+      ${open &&
+      html`
+        <div class="bgm-panel" role="dialog" aria-label="BGM の設定">
+          <div class="bgm-track">${bgm.on ? `♪ ${bgm.track ?? '準備中…'}` : 'BGM は止まっています'}</div>
+          <label class="bgm-volume">
+            <span aria-hidden="true">🔈</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value=${bgm.volume}
+              onInput=${(e) => setBgmVolume(e.currentTarget.value)}
+              aria-label="BGM の音量"
+            />
+            <span class="bgm-volume-num">${bgm.volume}</span>
+          </label>
+          <button class=${cx('btn btn-small', !bgm.on && 'btn-primary')} onClick=${() => setBgmOn(!bgm.on)}>
+            ${bgm.on ? 'BGM を止める' : 'BGM を流す'}
+          </button>
+        </div>
+      `}
+    </div>
+  `;
+}
 
 function App() {
   const [route, setRoute] = useState(parseRoute);
@@ -57,7 +116,7 @@ function App() {
   const lastSnap = useRef(null);
   const [soundOn, setSound] = useState(isSoundOn);
   useEffect(() => onSoundChange(setSound), []);
-  const [bgm, setBgm] = useState(() => ({ on: isBgmOn(), track: currentTrack() }));
+  const [bgm, setBgm] = useState(() => ({ on: isBgmOn(), track: currentTrack(), volume: getBgmVolume() }));
   useEffect(() => onBgmChange(setBgm), []);
 
   if (!connRef.current) {
@@ -220,15 +279,7 @@ function App() {
         <span class="logo-text">ボドゲひろば</span>
       </a>
       <div class="topbar-room">
-        <button
-          class=${cx('icon-btn sound-btn bgm-btn', !bgm.on && 'is-off')}
-          onClick=${() => setBgmOn(!bgm.on)}
-          aria-pressed=${bgm.on}
-          aria-label=${bgm.on ? 'BGM を止める' : 'BGM を流す'}
-          title=${bgm.on ? `BGM: ${bgm.track ?? 'あり'}` : 'BGM: なし'}
-        >
-          🎵
-        </button>
+        <${BgmControl} bgm=${bgm} />
         <button
           class="icon-btn sound-btn"
           onClick=${() => setSoundOn(!soundOn)}

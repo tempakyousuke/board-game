@@ -117,6 +117,9 @@ b {
 .bgm-btn {
   position: relative;
 }
+.bgm-btn.is-off {
+  opacity: 0.6;
+}
 .bgm-btn.is-off::after {
   content: '';
   position: absolute;
@@ -127,6 +130,51 @@ b {
   background: currentColor;
   border-radius: 2px;
   transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.bgm-wrap {
+  position: relative;
+}
+.bgm-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  width: min(260px, calc(100vw - 32px));
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--paper);
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+.bgm-track {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bgm-volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bgm-volume input {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+  height: 24px;
+  cursor: pointer;
+}
+.bgm-volume-num {
+  width: 2.2em;
+  text-align: right;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
 }
 
 .room-chip {

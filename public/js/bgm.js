@@ -5,10 +5,15 @@
 // ブラウザは画面を触るまで音を出せないので、最初のタップやキー入力で再生を始める。
 
 const STORAGE_KEY = 'bg.bgm';
-const VOLUME = 0.3;
+const VOLUME_KEY = 'bg.bgmVolume';
+const DEFAULT_VOLUME = 55; // 0〜100。実際の音量は2乗するので、55 で 0.3 くらい
+const MAX_GAIN = 1;
 
 let enabled = readSetting();
+let volume = readVolume();
 let audio = null;
+let ctx = null;
+let gain = null;
 let tracks = null; // 曲のファイル名の一覧。読み込み前は null
 let queue = [];
 let current = null;
@@ -23,8 +28,44 @@ function readSetting() {
   }
 }
 
+function readVolume() {
+  try {
+    const value = Number(localStorage.getItem(VOLUME_KEY));
+    if (localStorage.getItem(VOLUME_KEY) !== null && value >= 0 && value <= 100) return value;
+  } catch {
+    /* 読めなければ初期値 */
+  }
+  return DEFAULT_VOLUME;
+}
+
 export function isBgmOn() {
   return enabled;
+}
+
+/** 音量 (0〜100)。 */
+export function getBgmVolume() {
+  return volume;
+}
+
+export function setBgmVolume(value) {
+  volume = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+  try {
+    localStorage.setItem(VOLUME_KEY, String(volume));
+  } catch {
+    /* 保存できなくても、この画面のあいだは変わる */
+  }
+  applyVolume();
+  emit();
+}
+
+// 耳に自然に聞こえるよう、つまみの位置を2乗して音量にする。
+function gainValue() {
+  return (volume / 100) ** 2 * MAX_GAIN;
+}
+
+function applyVolume() {
+  if (gain) gain.gain.value = gainValue();
+  else if (audio) audio.volume = Math.min(1, gainValue());
 }
 
 /** いま流れている曲の名前 (拡張子なし)。流れていなければ null。 */
@@ -51,7 +92,7 @@ export function onBgmChange(fn) {
 }
 
 function emit() {
-  for (const fn of listeners) fn({ on: enabled, track: currentTrack() });
+  for (const fn of listeners) fn({ on: enabled, track: currentTrack(), volume });
 }
 
 function loadTracks() {
@@ -81,7 +122,19 @@ function ensureAudio() {
   if (audio) return audio;
   audio = new Audio();
   audio.preload = 'auto';
-  audio.volume = VOLUME;
+  // iPhone は audio.volume を無視するので、Web Audio を通して音量を変える。
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (AudioContext) {
+    try {
+      ctx = new AudioContext();
+      gain = ctx.createGain();
+      ctx.createMediaElementSource(audio).connect(gain).connect(ctx.destination);
+    } catch {
+      ctx = null;
+      gain = null;
+    }
+  }
+  applyVolume();
   audio.addEventListener('ended', next);
   // 読めない曲があっても止まらず次へ進む。
   audio.addEventListener('error', () => {
@@ -113,6 +166,7 @@ async function start() {
 
 // 最初に画面を触ったときに流し始める。再生に失敗したら (まだ許可されていない)、次に触ったときにまた試す。
 function onGesture() {
+  if (ctx?.state === 'suspended') ctx.resume().catch(() => {});
   if (!enabled) return;
   if (audio && !audio.paused) return;
   start();
@@ -125,5 +179,8 @@ for (const type of ['pointerdown', 'keydown', 'touchend']) {
 document.addEventListener('visibilitychange', () => {
   if (!audio || !current) return;
   if (document.hidden) audio.pause();
-  else if (enabled) audio.play().catch(() => {});
+  else if (enabled) {
+    if (ctx?.state === 'suspended') ctx.resume().catch(() => {});
+    audio.play().catch(() => {});
+  }
 });
