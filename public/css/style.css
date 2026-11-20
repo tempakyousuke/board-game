@@ -113,6 +113,21 @@ b {
 .sound-btn[aria-pressed='false'] {
   opacity: 0.6;
 }
+/* BGM を止めているときは、音符に斜線を引く。 */
+.bgm-btn {
+  position: relative;
+}
+.bgm-btn.is-off::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 70%;
+  height: 2px;
+  background: currentColor;
+  border-radius: 2px;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
 
 .room-chip {
   font-weight: 800;

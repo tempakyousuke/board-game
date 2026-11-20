@@ -3,6 +3,7 @@
 
 import http from 'node:http';
 import path from 'node:path';
+import fs from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { WebSocketServer } from 'ws';
@@ -40,6 +41,17 @@ app.use((_req, res, next) => {
 
 app.get('/healthz', (_req, res) => {
   res.json({ ok: true, ...manager.stats() });
+});
+
+// BGM の曲一覧。public/bgm/ に mp3 を置けば、それがそのまま流れる。
+const bgmDir = path.join(root, 'public/bgm');
+app.get('/bgm/list.json', async (_req, res) => {
+  try {
+    const files = await fs.readdir(bgmDir);
+    res.json(files.filter((f) => /\.(mp3|m4a|ogg)$/i.test(f)).sort());
+  } catch {
+    res.json([]);
+  }
 });
 
 // ビルド工程を持たないので、更新がすぐ反映されるよう毎回サーバーに確認させる。

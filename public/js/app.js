@@ -4,6 +4,7 @@ import { html, render, useState, useEffect, useRef, useCallback, cx } from './li
 import { Connection, getName, setName } from './net.js';
 import { Toasts } from './ui.js';
 import { play, isSoundOn, setSoundOn, onSoundChange } from './sound.js';
+import { isBgmOn, setBgmOn, onBgmChange, currentTrack } from './bgm.js';
 import { Home } from './home.js';
 import { Lobby, NameForm } from './lobby.js';
 import { GameScreen } from './game.js';
@@ -56,6 +57,8 @@ function App() {
   const lastSnap = useRef(null);
   const [soundOn, setSound] = useState(isSoundOn);
   useEffect(() => onSoundChange(setSound), []);
+  const [bgm, setBgm] = useState(() => ({ on: isBgmOn(), track: currentTrack() }));
+  useEffect(() => onBgmChange(setBgm), []);
 
   if (!connRef.current) {
     connRef.current = new Connection({
@@ -217,6 +220,15 @@ function App() {
         <span class="logo-text">ボドゲひろば</span>
       </a>
       <div class="topbar-room">
+        <button
+          class=${cx('icon-btn sound-btn bgm-btn', !bgm.on && 'is-off')}
+          onClick=${() => setBgmOn(!bgm.on)}
+          aria-pressed=${bgm.on}
+          aria-label=${bgm.on ? 'BGM を止める' : 'BGM を流す'}
+          title=${bgm.on ? `BGM: ${bgm.track ?? 'あり'}` : 'BGM: なし'}
+        >
+          🎵
+        </button>
         <button
           class="icon-btn sound-btn"
           onClick=${() => setSoundOn(!soundOn)}
