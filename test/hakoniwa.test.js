@@ -119,20 +119,20 @@ test('hakoniwa: 手札がいっぱいのときは、古い神器を1枚すてて
 });
 
 test('hakoniwa: となりに人がいれば、移動のかわりに武器で攻撃でき、そのあともう1回使える', () => {
-  const { state, rng } = arena([[1, 1], [2, 2], [4, 1]], [['dart', 'bow', 'sword', 'water']]);
-  assert.deepEqual(game.neighborsOf(state, 0), [1], 'ななめも、となり');
+  const { state, rng } = arena([[1, 1], [1, 2], [4, 1], [2, 2]], [['dart', 'bow', 'sword', 'water']]);
+  assert.deepEqual(game.neighborsOf(state, 0), [1], 'たて・よこだけ。ななめは、となりではない');
   // となりに当たらない使い方や、武器でない神器は、移動のかわりには使えない。
   assert.throws(() => use(state, rng, 0, 'bow', '右'), GameError);
   assert.throws(() => use(state, rng, 0, 'water', () => true), GameError);
-  assert.throws(() => use(state, rng, 0, 'sword', '右'), GameError);
-  use(state, rng, 0, 'dart', '右下');
+  assert.throws(() => use(state, rng, 0, 'dart', '右下'), GameError, 'ななめの人には使えない');
+  use(state, rng, 0, 'sword', '下');
   assert.equal(state.phase, 'guard');
   noGuard(state, rng, 1);
-  assert.equal(state.hp[1], START_HP - 5);
+  assert.equal(state.hp[1], START_HP - 6);
   assert.equal(state.turn, 0, 'まだ自分の番');
   assert.equal(state.phase, 'use');
   assert.equal(state.pos[0], cellOf(1, 1), '動いていない');
-  assert.deepEqual(state.hands[0], ['bow', 'sword', 'water'], 'ひろっていない');
+  assert.deepEqual(state.hands[0], ['dart', 'bow', 'water'], 'ひろっていない');
   use(state, rng, 0, 'bow', '右');
   noGuard(state, rng, 2);
   assert.equal(state.hp[2], START_HP - 5);

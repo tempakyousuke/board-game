@@ -3,7 +3,7 @@
 // ・自分の番は「移動 → 神器を1枚ひろう → 神器を1枚使う」。
 // ・移動は、たて・よこに1マス。その場にとどまれるのは、どこへも動けないときだけ
 //   (とどまれると、泉に居すわって回復し続けるのが強すぎた)。ひろえる神器は、立っているマスの地形で決まる。
-// ・となり (まわり8マス) に人がいるときは、移動のかわりに、その人に当たる武器を使える。
+// ・となり (たて・よこの4マス。移動できる範囲と同じ) に人がいるときは、移動のかわりに、その人に当たる武器を使える。
 //   そのあと、いつもどおり神器を1枚使えるので、1ターンに2回使えることになる (そのターンは神器をひろえない)。
 // ・手札がいっぱい (10枚) のときにひろうなら、古い神器を1枚すてるか、ひろわないかを選ぶ。
 // ・岩かべには耐久力があり、攻撃を当てるとこわせる。
@@ -159,13 +159,13 @@ function merge(rays) {
   return { cells: rays.flatMap((r) => r.cells), hits: rays.flatMap((r) => r.hits), walls: rays.flatMap((r) => r.walls) };
 }
 
-/** となり (まわり8マス) にいる人。 */
+/** となり (たて・よこの4マス) にいる人。 */
 export function neighborsOf(field, seat) {
   const from = field.pos[seat];
   const list = [];
   for (let s = 0; s < field.pos.length; s++) {
     if (s === seat || !field.alive[s]) continue;
-    if (Math.max(Math.abs(xOf(field.pos[s]) - xOf(from)), Math.abs(yOf(field.pos[s]) - yOf(from))) === 1) list.push(s);
+    if (Math.abs(xOf(field.pos[s]) - xOf(from)) + Math.abs(yOf(field.pos[s]) - yOf(from)) === 1) list.push(s);
   }
   return list;
 }
