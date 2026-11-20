@@ -4,6 +4,7 @@ import { html, useState, useEffect, cx } from '../lib.js';
 import {
   ARTIFACTS,
   TERRAINS,
+  CHAOS,
   SIZE,
   START_HP,
   START_HAND,
@@ -32,6 +33,7 @@ const MIRACLE_TEXT = {
   flatten: 'どこか1マスを平地にもどす',
   swap: 'だれか1人と、場所を入れかわる',
   dash: '2マス先までの空いたマスへ飛ぶ',
+  chaos: '何が起きるかわからない（4つのうち、どれか1つ）',
 };
 
 /** 神器のひとこと説明。 */
@@ -88,7 +90,7 @@ function Board({ view, seat, players, act }) {
     else if (last.t === 'miss') play('whoosh');
     else if (last.t === 'heal') play('chime');
     else if (last.t === 'dead') play('lose');
-    else if (last.t === 'makai') play('smoke');
+    else if (last.t === 'makai' || last.t === 'chaos') play('smoke');
     else if (last.t === 'miracle') play('whoosh');
     else if (last.t === 'hurt') play('fail');
     else if (last.t === 'draw') play('card');
@@ -152,6 +154,7 @@ function Board({ view, seat, players, act }) {
   const line = (e) => {
     if (e.t === 'move') return e.stay ? `${name(e.seat)}は動けず、${TERRAINS[e.terrain].name}にとどまった` : `${name(e.seat)}が ${TERRAINS[e.terrain].name}へ移動`;
     if (e.t === 'draw') return `${name(e.seat)}が ${TERRAINS[e.terrain].name}の神器をひろった${e.dropped ? `（「${ARTIFACTS[e.dropped].name}」をすてた）` : ''}`;
+    if (e.t === 'chaos') return `🎁 ${name(e.seat)}が「ふしぎな箱」を開けた → ${CHAOS[e.effect]}`;
     if (e.t === 'oracleGone') return `🔮 予言の地が消えた（${ORACLE_WAIT}ターン後に、どこかに現れる）`;
     if (e.t === 'oracle') return `🔮 予言の地が現れた`;
     if (e.t === 'left') return `${name(e.seat)}は、神器をひろわなかった`;
@@ -346,6 +349,7 @@ function Rules() {
         <li><b>⛲ 泉</b>：回復と、霧のころも。泉にいると、番の初めに HP+${SPRING_HEAL}。</li>
         <li><b>🏛️ 遺跡</b>：地形を変えたり、場所を入れかえたりする奇跡。</li>
         <li><b>🔮 予言の地</b>：盤に1マスだけ。入ると<b>特別な神器</b>（全員に当たる「天のさばき」、威力11で貫通する「竜のいぶき」、ダメージ −12 の「神のたて」、HP+20 の「命の実」）をひろえます。入られると消えて元の地形にもどり、${ORACLE_WAIT}ターン後に、どこか別のマスに現れます。奇跡で変えることはできません。</li>
+        <li><b>🎁 ふしぎな箱</b>（遺跡でひろえる）：使うと、次のどれか1つがランダムに起きます。${Object.values(CHAOS).map((text) => `「${text}」`).join('')}。手札がいっぱいになるのは、使った人だけです。</li>
         <li><b>🌋 溶岩</b>：威力の高い武器。ただし、移動のあとここにいると ${TERRAINS.lava.hurt}ダメージ。</li>
       </ul>
       <h3>攻撃と防御</h3>

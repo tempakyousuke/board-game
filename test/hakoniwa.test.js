@@ -341,3 +341,48 @@ test('hakoniwa: 天のさばきは、どこにいても ほかの全員に当た
   noGuard(state, rng, 2);
   assert.deepEqual(state.hp, [START_HP, START_HP - 6, START_HP - 6]);
 });
+
+test('hakoniwa: ふしぎな箱は、4つのうちどれか1つをランダムに起こす', () => {
+  const seenEffects = new Set();
+  for (let seed = 1; seed <= 60; seed++) {
+    const { state } = arena([[0, 0], [4, 4], [2, 2]], [['chaos', 'sword'], ['bow', 'bow', 'bow'], ['armor']]);
+    const rng = mulberry32(seed);
+    state.hp = [10, 30, 21];
+    state.cells[cellOf(3, 3)] = 'wall';
+    state.walls[cellOf(3, 3)] = 5;
+    ready(state, 0);
+    use(state, rng, 0, 'chaos', () => true);
+    const { effect } = state.events.find((e) => e.t === 'chaos');
+    seenEffects.add(effect);
+    assert.equal(state.turn, 1, '使ったら番は終わり');
+    if (effect === 'shuffle') {
+      assert.deepEqual(state.hands.map((hand) => hand.length), [1, 3, 1], '枚数はそのまま');
+      assert.deepEqual(state.hands.flat().sort(), ['armor', 'bow', 'bow', 'bow', 'sword']);
+    } else if (effect === 'remap') {
+      assert.equal(state.cells.filter((terrain) => terrain === 'lava').length, 2);
+      assert.deepEqual(state.walls, {});
+      assert.deepEqual(state.pos, [cellOf(0, 0), cellOf(4, 4), cellOf(2, 2)], '人は動かない');
+    } else if (effect === 'refill') {
+      assert.equal(state.hands[0].length, HAND_LIMIT);
+      assert.equal(state.hands[1].length, 3, 'ほかの人は変わらない');
+    } else {
+      assert.deepEqual(state.hp, [20, 20, 20]);
+    }
+    // (地形が変わったときは、次の人が泉に立っていて回復することがある)
+    if (effect === 'shuffle' || effect === 'refill') assert.deepEqual(state.hp, [10, 30, 21]);
+  }
+  assert.deepEqual([...seenEffects].sort(), ['equal', 'refill', 'remap', 'shuffle']);
+  assert.ok('chaos' in TERRAINS.ruin.deck);
+});
+
+test('hakoniwa: 魔界になったあとは、ふしぎな箱でも地形は変わらない', () => {
+  for (let seed = 1; seed <= 30; seed++) {
+    const { state } = arena([[0, 0], [4, 4]], [['chaos']]);
+    state.makai = true;
+    state.cells = state.cells.map(() => 'makai');
+    ready(state, 0);
+    use(state, mulberry32(seed), 0, 'chaos', () => true);
+    assert.notEqual(state.events.find((e) => e.t === 'chaos').effect, 'remap');
+    assert.ok(state.cells.every((terrain) => terrain === 'makai'));
+  }
+});

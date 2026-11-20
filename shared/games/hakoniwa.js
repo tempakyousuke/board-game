@@ -81,6 +81,8 @@ export const ARTIFACTS = {
   gust: { name: '突風', emoji: '🌪️', kind: 'weapon', shape: 'line', range: 3, power: 3, push: 2 },
   swap: { name: '入れかえ', emoji: '🔄', kind: 'miracle', effect: 'swap' },
   thunder: { name: 'いかずち', emoji: '⚡', kind: 'weapon', shape: 'bolt', power: 4 },
+  // 使うと、CHAOS のどれか1つがランダムに起きる。
+  chaos: { name: 'ふしぎな箱', emoji: '🎁', kind: 'miracle', effect: 'chaos' },
   // 溶岩
   flameSword: { name: '炎のつるぎ', emoji: '🔥', kind: 'weapon', shape: 'line', range: 2, pierce: true, power: 9 },
   inferno: { name: '業火', emoji: '💥', kind: 'weapon', shape: 'around', range: 1, pierce: true, power: 7 },
@@ -104,12 +106,20 @@ export const TERRAINS = {
   forest: { name: '森', emoji: '🌲', hurt: 0, deck: { bow: 3, boomerang: 3, dart: 2, leafCloak: 3 } },
   mountain: { name: '山', emoji: '⛰️', hurt: 0, deck: { hammer: 2, cannon: 2, ironShield: 3, armor: 3 } },
   spring: { name: '泉', emoji: '⛲', hurt: 0, deck: { water: 4, elixir: 2, mist: 3, dash: 2 } },
-  ruin: { name: '遺跡', emoji: '🏛️', hurt: 0, deck: { erupt: 3, wall: 2, flatten: 1, gust: 2, swap: 2, thunder: 3 } },
+  ruin: { name: '遺跡', emoji: '🏛️', hurt: 0, deck: { erupt: 3, wall: 2, flatten: 1, gust: 2, swap: 2, thunder: 3, chaos: 2 } },
   lava: { name: '溶岩', emoji: '🌋', hurt: 2, deck: { flameSword: 3, inferno: 3, lavaAxe: 2 } },
   makai: { name: '魔界', emoji: '😈', hurt: 4, deck: { demonSword: 3, doomLight: 2, demonShield: 2 } },
   wall: { name: '岩かべ', emoji: '🧱', hurt: 0, deck: {} },
   oracle: { name: '予言の地', emoji: '🔮', hurt: 0, deck: { judgment: 2, dragon: 2, holyShield: 2, lifeFruit: 2 } },
 };
+// ふしぎな箱で起きること。
+export const CHAOS = {
+  shuffle: '全員の神器をまぜて、配り直した（枚数はそのまま）',
+  remap: '地形が、全部つくり直された',
+  refill: '手札が、上限までいっぱいになった',
+  equal: '全員の HP が、同じになった',
+};
+
 const MAP_COUNTS = { plain: 8, forest: 5, mountain: 4, spring: 3, ruin: 3, lava: 2 };
 const STARTER_TERRAINS = ['plain', 'forest', 'mountain', 'spring'];
 // 始まる場所 (人数ごと)。[x, y]
@@ -227,6 +237,7 @@ export function optionsFor(field, seat, id) {
     return all.cells.length ? [{ label: art.shape === 'cross' ? '十字' : art.shape === 'star' ? '8方向' : 'まわり', ...all }] : [];
   }
   if (art.kind !== 'miracle') return [];
+  if (art.effect === 'chaos') return [{ label: '自分に使う', cells: [from], hits: [], walls: [] }];
   const options = [];
   for (let cell = 0; cell < SIZE * SIZE; cell++) {
     const terrain = field.cells[cell];
@@ -445,6 +456,34 @@ function resolveAttack(state, rng) {
   afterAttack(state, first, rng);
 }
 
+/** ふしぎな箱: どれか1つがランダムに起きる。 */
+function chaos(state, seat, rng) {
+  const living = state.alive.map((ok, s) => (ok ? s : -1)).filter((s) => s >= 0);
+  // 魔界になったあとは、地形は変わらない。
+  const kinds = Object.keys(CHAOS).filter((kind) => kind !== 'remap' || !state.makai);
+  const effect = kinds[randInt(rng, kinds.length)];
+  if (effect === 'shuffle') {
+    const pile = shuffle(rng, living.flatMap((s) => state.hands[s]));
+    for (const s of living) state.hands[s] = pile.splice(0, state.hands[s].length);
+  } else if (effect === 'remap') {
+    state.cells = shuffle(rng, Object.entries(MAP_COUNTS).flatMap(([terrain, count]) => fill(count, terrain)));
+    state.walls = {};
+    if (state.oracle.cell >= 0) {
+      // 予言の地も、人のいないどこかへ移る。
+      const free = state.cells.map((_, i) => i).filter((i) => whoAt(state, i) < 0);
+      const cell = free[randInt(rng, free.length)];
+      state.oracle = { cell, under: state.cells[cell], returnsAt: 0 };
+      state.cells[cell] = 'oracle';
+    }
+  } else if (effect === 'refill') {
+    gain(state, seat, rng, HAND_LIMIT);
+  } else {
+    const even = Math.round(living.reduce((sum, s) => sum + state.hp[s], 0) / living.length);
+    for (const s of living) state.hp[s] = even;
+  }
+  note(state, { t: 'chaos', seat, effect });
+}
+
 export function act(state, seat, action, rng) {
   assert(!state.over, 'ゲームは終了しています');
   assert(seat >= 0 && seat < state.n && state.alive[seat], '操作できません');
@@ -551,6 +590,10 @@ export function act(state, seat, action, rng) {
     return;
   }
   // 奇跡
+  if (art.effect === 'chaos') {
+    chaos(state, seat, rng);
+    return endTurn(state, rng);
+  }
   const { cell } = option;
   if (art.effect === 'swap') {
     [state.pos[seat], state.pos[option.target]] = [state.pos[option.target], state.pos[seat]];
@@ -643,6 +686,12 @@ function useValue(state, seat, id, option) {
     const here = TERRAINS[state.cells[state.pos[seat]]].hurt;
     const there = TERRAINS[state.cells[option.cell]].hurt;
     return here > there ? 3 : crowded ? 0.2 : -1;
+  }
+  if (art.effect === 'chaos') {
+    // 負けているときほど、ひっくり返しにいく。
+    const others = state.hp.filter((_, s) => s !== seat && state.alive[s]);
+    const average = others.reduce((a, b) => a + b, 0) / others.length;
+    return state.hp[seat] < average - 3 || state.hands[seat].length <= 4 ? 2 : crowded ? 0.3 : -1;
   }
   if (art.effect === 'flatten') return state.cells[option.cell] === 'lava' && option.cell === state.pos[seat] ? 3 : crowded ? 0.2 : -1;
   return crowded ? 0.2 : -1;
