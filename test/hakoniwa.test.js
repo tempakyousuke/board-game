@@ -342,19 +342,21 @@ test('hakoniwa: 天のさばきは、どこにいても ほかの全員に当た
   assert.deepEqual(state.hp, [START_HP, START_HP - 6, START_HP - 6]);
 });
 
-test('hakoniwa: ふしぎな箱は、4つのうちどれか1つをランダムに起こす', () => {
+test('hakoniwa: ふしぎな箱は予言の地でひろえて、7つのうちどれか1つをランダムに起こす', () => {
+  assert.ok('chaos' in TERRAINS.oracle.deck && !('chaos' in TERRAINS.ruin.deck));
   const seenEffects = new Set();
-  for (let seed = 1; seed <= 60; seed++) {
+  for (let seed = 1; seed <= 150; seed++) {
     const { state } = arena([[0, 0], [4, 4], [2, 2]], [['chaos', 'sword'], ['bow', 'bow', 'bow'], ['armor']]);
     const rng = mulberry32(seed);
     state.hp = [10, 30, 21];
     state.cells[cellOf(3, 3)] = 'wall';
-    state.walls[cellOf(3, 3)] = 5;
+    state.cells[cellOf(1, 3)] = 'forest';
+    state.walls[cellOf(3, 3)] = 20;
     ready(state, 0);
     use(state, rng, 0, 'chaos', () => true);
-    const { effect } = state.events.find((e) => e.t === 'chaos');
+    const event = state.events.find((e) => e.t === 'chaos');
+    const { effect } = event;
     seenEffects.add(effect);
-    assert.equal(state.turn, 1, '使ったら番は終わり');
     if (effect === 'shuffle') {
       assert.deepEqual(state.hands.map((hand) => hand.length), [1, 3, 1], '枚数はそのまま');
       assert.deepEqual(state.hands.flat().sort(), ['armor', 'bow', 'bow', 'bow', 'sword']);
@@ -365,24 +367,56 @@ test('hakoniwa: ふしぎな箱は、4つのうちどれか1つをランダム�
     } else if (effect === 'refill') {
       assert.equal(state.hands[0].length, HAND_LIMIT);
       assert.equal(state.hands[1].length, 3, 'ほかの人は変わらない');
-    } else {
+    } else if (effect === 'equal') {
       assert.deepEqual(state.hp, [20, 20, 20]);
+    } else if (effect === 'warp') {
+      assert.deepEqual(state.pos.slice().sort((a, b) => a - b), [cellOf(0, 0), cellOf(2, 2), cellOf(4, 4)], '同じ3マスの中で入れかわる');
+      assert.notDeepEqual(state.pos, [cellOf(0, 0), cellOf(4, 4), cellOf(2, 2)], 'だれかは動く');
+    } else if (effect === 'meteor') {
+      assert.equal(new Set(event.cells).size, game.METEORS);
+      const before = [10, 30, 21];
+      [cellOf(0, 0), cellOf(4, 4), cellOf(2, 2)].forEach((cell, s) => {
+        const hit = event.cells.includes(cell);
+        assert.equal(event.hits.includes(s), hit);
+        assert.equal(state.hp[s], before[s] - (hit ? game.METEOR_POWER : 0), '当たった人だけ、防具なしで受ける');
+      });
+      assert.equal(state.walls[cellOf(3, 3)], event.cells.includes(cellOf(3, 3)) ? 20 - game.METEOR_POWER : 20);
+    } else {
+      assert.equal(effect, 'curse');
+      assert.ok(state.cells.every((terrain) => terrain === 'makai'));
+      assert.equal(state.makai, false, '本物の魔界ではない');
+      assert.equal(game.view(state, 0).curseLeft, 3);
+      // 3人が1回ずつ番をすると、元にもどる。
+      const hpBefore = state.hp.slice();
+      for (let lap = 0; lap < 3; lap++) {
+        const seat = state.turn;
+        assert.ok(state.cells.every((terrain) => terrain === 'makai'));
+        game.act(state, seat, { type: 'move', to: game.movesFor(state, seat)[0] }, rng);
+        if (state.phase === 'pick') game.act(state, seat, { type: 'leave' }, rng);
+        game.act(state, seat, { type: 'skip' }, rng);
+      }
+      assert.deepEqual(state.hp, hpBefore.map((hp) => hp - TERRAINS.makai.hurt), '全員が1回ずつ魔界のダメージを受ける');
+      assert.equal(state.cells[cellOf(3, 3)], 'wall');
+      assert.equal(state.cells[cellOf(1, 3)], 'forest');
+      assert.equal(state.walls[cellOf(3, 3)], 20);
+      assert.equal(state.curse, null);
+      assert.equal(game.view(state, 0).curseLeft, 0);
     }
-    // (地形が変わったときは、次の人が泉に立っていて回復することがある)
-    if (effect === 'shuffle' || effect === 'refill') assert.deepEqual(state.hp, [10, 30, 21]);
   }
-  assert.deepEqual([...seenEffects].sort(), ['equal', 'refill', 'remap', 'shuffle']);
-  assert.ok('chaos' in TERRAINS.ruin.deck);
+  assert.deepEqual([...seenEffects].sort(), Object.keys(game.CHAOS).sort());
+  assert.equal(Object.keys(game.CHAOS).length, 7);
 });
 
-test('hakoniwa: 魔界になったあとは、ふしぎな箱でも地形は変わらない', () => {
-  for (let seed = 1; seed <= 30; seed++) {
+test('hakoniwa: 魔界 (本物でも一時的でも) のあいだは、ふしぎな箱で地形は変わらない', () => {
+  for (let seed = 1; seed <= 40; seed++) {
     const { state } = arena([[0, 0], [4, 4]], [['chaos']]);
-    state.makai = true;
+    if (seed % 2) state.makai = true;
+    else state.curse = { until: 99, cells: state.cells, walls: {}, oracle: state.oracle };
     state.cells = state.cells.map(() => 'makai');
     ready(state, 0);
     use(state, mulberry32(seed), 0, 'chaos', () => true);
-    assert.notEqual(state.events.find((e) => e.t === 'chaos').effect, 'remap');
+    const { effect } = state.events.find((e) => e.t === 'chaos');
+    assert.ok(effect !== 'remap' && effect !== 'curse');
     assert.ok(state.cells.every((terrain) => terrain === 'makai'));
   }
 });

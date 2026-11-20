@@ -106,11 +106,11 @@ export const TERRAINS = {
   forest: { name: '森', emoji: '🌲', hurt: 0, deck: { bow: 3, boomerang: 3, dart: 2, leafCloak: 3 } },
   mountain: { name: '山', emoji: '⛰️', hurt: 0, deck: { hammer: 2, cannon: 2, ironShield: 3, armor: 3 } },
   spring: { name: '泉', emoji: '⛲', hurt: 0, deck: { water: 4, elixir: 2, mist: 3, dash: 2 } },
-  ruin: { name: '遺跡', emoji: '🏛️', hurt: 0, deck: { erupt: 3, wall: 2, flatten: 1, gust: 2, swap: 2, thunder: 3, chaos: 2 } },
+  ruin: { name: '遺跡', emoji: '🏛️', hurt: 0, deck: { erupt: 3, wall: 2, flatten: 1, gust: 2, swap: 2, thunder: 3 } },
   lava: { name: '溶岩', emoji: '🌋', hurt: 2, deck: { flameSword: 3, inferno: 3, lavaAxe: 2 } },
   makai: { name: '魔界', emoji: '😈', hurt: 4, deck: { demonSword: 3, doomLight: 2, demonShield: 2 } },
   wall: { name: '岩かべ', emoji: '🧱', hurt: 0, deck: {} },
-  oracle: { name: '予言の地', emoji: '🔮', hurt: 0, deck: { judgment: 2, dragon: 2, holyShield: 2, lifeFruit: 2 } },
+  oracle: { name: '予言の地', emoji: '🔮', hurt: 0, deck: { judgment: 2, dragon: 2, holyShield: 2, lifeFruit: 2, chaos: 2 } },
 };
 // ふしぎな箱で起きること。
 export const CHAOS = {
@@ -118,7 +118,12 @@ export const CHAOS = {
   remap: '地形が、全部つくり直された',
   refill: '手札が、上限までいっぱいになった',
   equal: '全員の HP が、同じになった',
+  warp: '全員の場所が、入れかわった',
+  meteor: '流れ星が3つ落ちた',
+  curse: '全部のマスが、1周のあいだ魔界になった',
 };
+export const METEORS = 3;
+export const METEOR_POWER = 6;
 
 const MAP_COUNTS = { plain: 8, forest: 5, mountain: 4, spring: 3, ruin: 3, lava: 2 };
 const STARTER_TERRAINS = ['plain', 'forest', 'mountain', 'spring'];
@@ -318,6 +323,7 @@ export function setup({ n, rng }) {
     phase: 'move', // move: 移動 (か、となりへの攻撃) / pick: 手札がいっぱいのときの入れかえ / use: 神器を使う / guard: 攻撃された人が受ける
     attack: null,
     found: null, // ひろおうとしている神器 (手札がいっぱいのとき)
+    curse: null, // ふしぎな箱で、一時的に魔界になっているあいだ { until: このターンまで, cells, walls, oracle: 元にもどすもの }
     walls: {}, // 岩かべの残りの耐久力 (マス → 数)
     makai: false,
     out: [], // 脱落した順
@@ -365,10 +371,19 @@ function endTurn(state, rng) {
     state.cells = state.cells.map(() => 'makai');
     state.walls = {};
     state.oracle = { cell: -1, under: null, returnsAt: 0 };
+    state.curse = null;
+  }
+  // 一時的な魔界が終わったら、地形を元にもどす。
+  if (state.curse && state.turnNo > state.curse.until) {
+    state.cells = state.curse.cells;
+    state.walls = state.curse.walls;
+    state.oracle = state.curse.oracle;
+    state.curse = null;
+    note(state, { t: 'curseEnd' });
     note(state, { t: 'makai' });
   }
   // 予言の地が、どこか別のマスに現れる (人のいないマス。岩かべは除く)。
-  if (!state.makai && state.oracle.cell < 0 && state.turnNo >= state.oracle.returnsAt) {
+  if (!state.makai && !state.curse && state.oracle.cell < 0 && state.turnNo >= state.oracle.returnsAt) {
     const free = state.cells.map((_, i) => i).filter((i) => state.cells[i] !== 'wall' && whoAt(state, i) < 0 && i !== state.oracle.last);
     if (free.length) {
       const cell = free[randInt(rng, free.length)];
@@ -460,8 +475,10 @@ function resolveAttack(state, rng) {
 function chaos(state, seat, rng) {
   const living = state.alive.map((ok, s) => (ok ? s : -1)).filter((s) => s >= 0);
   // 魔界になったあとは、地形は変わらない。
-  const kinds = Object.keys(CHAOS).filter((kind) => kind !== 'remap' || !state.makai);
+  const frozen = state.makai || Boolean(state.curse);
+  const kinds = Object.keys(CHAOS).filter((kind) => !frozen || (kind !== 'remap' && kind !== 'curse'));
   const effect = kinds[randInt(rng, kinds.length)];
+  const extra = {};
   if (effect === 'shuffle') {
     const pile = shuffle(rng, living.flatMap((s) => state.hands[s]));
     for (const s of living) state.hands[s] = pile.splice(0, state.hands[s].length);
@@ -477,11 +494,31 @@ function chaos(state, seat, rng) {
     }
   } else if (effect === 'refill') {
     gain(state, seat, rng, HAND_LIMIT);
-  } else {
+  } else if (effect === 'equal') {
     const even = Math.round(living.reduce((sum, s) => sum + state.hp[s], 0) / living.length);
     for (const s of living) state.hp[s] = even;
+  } else if (effect === 'warp') {
+    // いまの場所を、全員で入れかえる (だれも動かない並びは、やり直す)。
+    const before = living.map((s) => state.pos[s]);
+    let after = before;
+    for (let tries = 0; tries < 20 && after.every((cell, i) => cell === before[i]); tries++) after = shuffle(rng, before);
+    living.forEach((s, i) => (state.pos[s] = after[i]));
+  } else if (effect === 'meteor') {
+    // どこに落ちるかは、わからない。使った本人に当たることもある。防具では受けられない。
+    extra.cells = shuffle(rng, state.cells.map((_, i) => i)).slice(0, METEORS);
+    extra.hits = extra.cells.map((cell) => whoAt(state, cell)).filter((s) => s >= 0);
+  } else {
+    // 生きている人が1回ずつ番をするあいだ、全部のマスが魔界になる。
+    state.curse = { until: state.turnNo + living.length, cells: state.cells, walls: state.walls, oracle: state.oracle };
+    state.cells = state.cells.map(() => 'makai');
+    state.walls = {};
+    state.oracle = { cell: -1, under: null, returnsAt: 0 };
   }
-  note(state, { t: 'chaos', seat, effect });
+  note(state, { t: 'chaos', seat, effect, ...extra });
+  if (effect === 'meteor') {
+    for (const s of extra.hits) hurt(state, s, METEOR_POWER, null);
+    hitWalls(state, extra.cells, METEOR_POWER);
+  }
 }
 
 export function act(state, seat, action, rng) {
@@ -640,7 +677,9 @@ export function view(state, seat) {
       answered: state.attack.targets.filter((target) => target in state.attack.guards),
     },
     // 予言の地が消えているあいだは、あと何ターンで現れるか。
-    oracleIn: state.makai || state.oracle.cell >= 0 ? null : Math.max(1, state.oracle.returnsAt - state.turnNo),
+    // 一時的な魔界が、あと何ターンつづくか。
+    curseLeft: state.curse ? state.curse.until - state.turnNo + 1 : 0,
+    oracleIn: state.makai || state.curse || state.oracle.cell >= 0 ? null : Math.max(1, state.oracle.returnsAt - state.turnNo),
     out: state.out,
     events: state.events,
     over: state.over,
