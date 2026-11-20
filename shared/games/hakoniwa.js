@@ -1,7 +1,12 @@
 // 神器の箱庭 — 5×5 の地形の上で、拾った神器をぶつけ合う (2〜6人)
 //
 // ・自分の番は「移動 → 神器を1枚ひろう → 神器を1枚使う」。
-// ・移動は、たて・よこに1マス (その場にとどまってもよい)。ひろえる神器は、立っているマスの地形で決まる。
+// ・移動は、たて・よこに1マス。その場にとどまれるのは、どこへも動けないときだけ
+//   (とどまれると、泉に居すわって回復し続けるのが強すぎた)。ひろえる神器は、立っているマスの地形で決まる。
+// ・となり (まわり8マス) に人がいるときは、移動のかわりに、その人に当たる武器を使える。
+//   そのあと、いつもどおり神器を1枚使えるので、1ターンに2回使えることになる (そのターンは神器をひろえない)。
+// ・手札がいっぱい (10枚) のときにひろうなら、古い神器を1枚すてるか、ひろわないかを選ぶ。
+// ・岩かべには耐久力があり、攻撃を当てるとこわせる。
 // ・武器には形がある (たて・よこの直線、ななめ、まわり8マス、十字など)。貫通する武器は、線の上の全員に当たる。
 // ・攻撃された人は、手札の防具を何枚でも出して受ける。出した枚数だけ、足もとの地形から引き直す。
 // ・地形には効果がある (森は守りやすい、山は攻撃が強くなる、泉は回復、溶岩は強い神器のかわりにダメージ)。
@@ -26,13 +31,14 @@ export const meta = {
 
 export const SIZE = 5;
 export const START_HP = 30;
-export const MAX_HP = 30;
+export const MAX_HP = 99;
 export const START_HAND = 5;
 export const HAND_LIMIT = 10;
 export const MAKAI_TURN = 100; // このターンをすぎたら、全部のマスが魔界になる
 export const SPRING_HEAL = 2;
 export const FOREST_COVER = 1;
 export const MOUNTAIN_EDGE = 1;
+export const WALL_HP = 10; // 岩かべの耐久力
 const EVENTS_KEPT = 40;
 
 // ---- 神器 -------------------------------------------------------------------
@@ -126,31 +132,55 @@ export function whoAt(field, cell) {
 function ray(field, from, [dx, dy], range, pierce) {
   const cells = [];
   const hits = [];
+  const walls = [];
   let x = xOf(from);
   let y = yOf(from);
   for (let step = 0; step < range; step++) {
     x += dx;
     y += dy;
-    if (!inside(x, y) || field.cells[cellOf(x, y)] === 'wall') break;
+    if (!inside(x, y)) break;
     const cell = cellOf(x, y);
     cells.push(cell);
+    if (field.cells[cell] === 'wall') {
+      // 岩かべが攻撃を受け止める。
+      walls.push(cell);
+      break;
+    }
     const seat = whoAt(field, cell);
     if (seat >= 0) {
       hits.push(seat);
       if (!pierce) break;
     }
   }
-  return { cells, hits };
+  return { cells, hits, walls };
 }
 
 function merge(rays) {
-  return { cells: rays.flatMap((r) => r.cells), hits: rays.flatMap((r) => r.hits) };
+  return { cells: rays.flatMap((r) => r.cells), hits: rays.flatMap((r) => r.hits), walls: rays.flatMap((r) => r.walls) };
 }
 
-/** 移動できるマス (その場をふくむ)。 */
+/** となり (まわり8マス) にいる人。 */
+export function neighborsOf(field, seat) {
+  const from = field.pos[seat];
+  const list = [];
+  for (let s = 0; s < field.pos.length; s++) {
+    if (s === seat || !field.alive[s]) continue;
+    if (Math.max(Math.abs(xOf(field.pos[s]) - xOf(from)), Math.abs(yOf(field.pos[s]) - yOf(from))) === 1) list.push(s);
+  }
+  return list;
+}
+
+/** 移動のかわりに使える使い方か (となりの人に当たる武器だけ)。 */
+export function strikesNeighbor(field, seat, id, option) {
+  if (ARTIFACTS[id].kind !== 'weapon') return false;
+  const near = neighborsOf(field, seat);
+  return option.hits.some((target) => near.includes(target));
+}
+
+/** 移動できるマス。どこへも動けないときだけ、その場にとどまれる。 */
 export function movesFor(field, seat) {
   const from = field.pos[seat];
-  const list = [from];
+  const list = [];
   for (const [dx, dy] of DIR4) {
     const x = xOf(from) + dx;
     const y = yOf(from) + dy;
@@ -158,7 +188,7 @@ export function movesFor(field, seat) {
     const cell = cellOf(x, y);
     if (field.cells[cell] !== 'wall' && whoAt(field, cell) < 0) list.push(cell);
   }
-  return list;
+  return list.length ? list : [from];
 }
 
 /**
@@ -168,7 +198,7 @@ export function movesFor(field, seat) {
 export function optionsFor(field, seat, id) {
   const art = ARTIFACTS[id];
   const from = field.pos[seat];
-  if (art.kind === 'heal') return [{ label: '自分に使う', cells: [from], hits: [] }];
+  if (art.kind === 'heal') return [{ label: '自分に使う', cells: [from], hits: [], walls: [] }];
   if (art.kind === 'weapon') {
     if (art.shape === 'line' || art.shape === 'diag') {
       const dirs = art.shape === 'line' ? DIR4 : DIAG;
@@ -177,7 +207,7 @@ export function optionsFor(field, seat, id) {
         .filter((option) => option.cells.length > 0);
     }
     if (art.shape === 'bolt') {
-      return field.pos.map((cell, s) => ({ target: s, label: '', cells: [cell], hits: [s] })).filter((o) => o.target !== seat && field.alive[o.target]);
+      return field.pos.map((cell, s) => ({ target: s, label: '', cells: [cell], hits: [s], walls: [] })).filter((o) => o.target !== seat && field.alive[o.target]);
     }
     const dirs = art.shape === 'cross' ? DIR4 : [...DIR4, ...DIAG];
     const all = merge(dirs.map((dir) => ray(field, from, dir, art.range, true)));
@@ -255,8 +285,10 @@ export function setup({ n, rng }) {
     hands: Array.from({ length: n }, () => Array.from({ length: START_HAND }, () => drawFrom(STARTER_TERRAINS[randInt(rng, STARTER_TERRAINS.length)], rng))),
     turn: randInt(rng, n),
     turnNo: 1,
-    phase: 'move', // move: 移動 / use: 神器を使う / guard: 攻撃された人が受ける
+    phase: 'move', // move: 移動 (か、となりへの攻撃) / pick: 手札がいっぱいのときの入れかえ / use: 神器を使う / guard: 攻撃された人が受ける
     attack: null,
+    found: null, // ひろおうとしている神器 (手札がいっぱいのとき)
+    walls: {}, // 岩かべの残りの耐久力 (マス → 数)
     makai: false,
     out: [], // 脱落した順
     events: [],
@@ -301,6 +333,7 @@ function endTurn(state) {
   if (!state.makai && state.turnNo > MAKAI_TURN) {
     state.makai = true;
     state.cells = state.cells.map(() => 'makai');
+    state.walls = {};
     note(state, { t: 'makai' });
   }
   // 泉にいる人は、番の初めに回復する。
@@ -323,8 +356,29 @@ function gain(state, seat, rng, count = 1) {
   return got;
 }
 
+/** 岩かべに攻撃が当たる。耐久力がなくなったら、平地になる。 */
+function hitWalls(state, walls, power) {
+  for (const cell of walls) {
+    if (state.cells[cell] !== 'wall') continue;
+    state.walls[cell] = (state.walls[cell] ?? WALL_HP) - power;
+    const broken = state.walls[cell] <= 0;
+    if (broken) {
+      state.cells[cell] = 'plain';
+      delete state.walls[cell];
+    }
+    note(state, { t: 'wall', cell, amount: power, broken });
+  }
+}
+
+/** 攻撃が片づいたあと。移動のかわりの攻撃なら、つづけて神器を使える。 */
+function afterAttack(state, first) {
+  state.attack = null;
+  if (!first || !state.alive[state.turn] || state.alive.filter(Boolean).length <= 1) return endTurn(state);
+  state.phase = 'use';
+}
+
 function resolveAttack(state, rng) {
-  const { from, card, power, cells, targets, guards } = state.attack;
+  const { from, card, power, cells, targets, guards, walls, first } = state.attack;
   const art = ARTIFACTS[card];
   const results = [];
   for (const target of targets) {
@@ -355,7 +409,8 @@ function resolveAttack(state, rng) {
       if (moved) note(state, { t: 'pushed', seat: r.seat, to: state.pos[r.seat] });
     }
   }
-  endTurn(state);
+  hitWalls(state, walls, power);
+  afterAttack(state, first);
 }
 
 export function act(state, seat, action, rng) {
@@ -380,21 +435,46 @@ export function act(state, seat, action, rng) {
 
   assert(seat === state.turn, 'あなたの番ではありません');
 
-  if (state.phase === 'move') {
+  if (state.phase === 'pick') {
+    // 手札がいっぱい。古い神器を1枚すてて ひろうか、ひろわないか。
+    if (action.type === 'swap') {
+      assert(Number.isInteger(action.discard) && action.discard >= 0 && action.discard < state.hands[seat].length, 'すてる神器をえらんでください');
+      const dropped = state.hands[seat].splice(action.discard, 1)[0];
+      state.hands[seat].push(state.found);
+      note(state, { t: 'draw', seat, terrain: state.cells[state.pos[seat]], dropped });
+    } else {
+      assert(action.type === 'leave', 'すてる神器をえらぶか、ひろわないかを決めてください');
+      note(state, { t: 'left', seat });
+    }
+    state.found = null;
+    state.phase = 'use';
+    return;
+  }
+
+  // 移動のかわりに、となりの人を攻撃する (そのあと、もう1回神器を使える)。
+  const first = state.phase === 'move' && action.type === 'use';
+  if (state.phase === 'move' && !first) {
     assert(action.type === 'move', 'まず移動してください');
-    assert(movesFor(state, seat).includes(action.to), 'そこへは動けません');
+    assert(movesFor(state, seat).includes(action.to), action.to === state.pos[seat] ? '動けるマスがあるときは、とどまれません' : 'そこへは動けません');
     const stay = action.to === state.pos[seat];
     state.pos[seat] = action.to;
     const terrain = state.cells[action.to];
     note(state, { t: 'move', seat, to: action.to, stay, terrain });
     hurt(state, seat, TERRAINS[terrain].hurt, terrain);
     if (!state.alive[seat]) return endTurn(state);
-    if (gain(state, seat, rng)) note(state, { t: 'draw', seat, terrain });
+    const id = drawFrom(terrain, rng);
+    if (state.hands[seat].length >= HAND_LIMIT) {
+      state.found = id;
+      state.phase = 'pick';
+      return;
+    }
+    state.hands[seat].push(id);
+    note(state, { t: 'draw', seat, terrain });
     state.phase = 'use';
     return;
   }
 
-  assert(state.phase === 'use', 'いまは操作できません');
+  assert(state.phase === 'use' || first, 'いまは操作できません');
   if (action.type === 'skip') return endTurn(state);
   assert(action.type === 'use', '不明な操作です');
   const hand = state.hands[seat];
@@ -404,6 +484,14 @@ export function act(state, seat, action, rng) {
   assert(art.kind !== 'guard', '防具は、攻撃されたときに出します');
   const option = optionsFor(state, seat, id)[action.pick];
   assert(option, 'その使い方はできません');
+  if (first) {
+    assert(strikesNeighbor(state, seat, id, option), '移動のかわりに使えるのは、となりの人に当たる武器だけです');
+    // 動かなくても、痛い地形の上にいればダメージを受ける (魔界でかならず決着がつくように)。
+    const terrain = state.cells[state.pos[seat]];
+    note(state, { t: 'strike', seat });
+    hurt(state, seat, TERRAINS[terrain].hurt, terrain);
+    if (!state.alive[seat]) return endTurn(state);
+  }
   hand.splice(action.card, 1);
 
   if (art.kind === 'heal') {
@@ -413,11 +501,13 @@ export function act(state, seat, action, rng) {
     return endTurn(state);
   }
   if (art.kind === 'weapon') {
+    const power = powerOf(state, seat, id);
     if (option.hits.length === 0) {
       note(state, { t: 'miss', seat, card: id, cells: option.cells });
+      hitWalls(state, option.walls, power);
       return endTurn(state);
     }
-    state.attack = { from: seat, card: id, power: powerOf(state, seat, id), dir: option.dir ?? -1, cells: option.cells, targets: option.hits.slice(), guards: {} };
+    state.attack = { from: seat, card: id, power, dir: option.dir ?? -1, cells: option.cells, targets: option.hits.slice(), walls: option.walls.slice(), first, guards: {} };
     state.phase = 'guard';
     return;
   }
@@ -432,6 +522,8 @@ export function act(state, seat, action, rng) {
   } else {
     const before = state.cells[cell];
     state.cells[cell] = { erupt: 'lava', wall: 'wall', flatten: 'plain' }[art.effect];
+    delete state.walls[cell];
+    if (art.effect === 'wall') state.walls[cell] = WALL_HP;
     note(state, { t: 'miracle', seat, card: id, cell, before });
     if (art.effect === 'erupt' && option.hits.length) hurt(state, option.hits[0], art.power, id);
   }
@@ -449,6 +541,9 @@ export function view(state, seat) {
     handCount: state.hands.map((hand) => hand.length),
     // 手札は本人にしか見えない。
     myHand: mine ? state.hands[seat] : [],
+    // ひろおうとしている神器も、本人にしか見えない。
+    found: mine && seat === state.turn ? state.found : null,
+    walls: state.walls,
     turn: state.turn,
     turnNo: state.turnNo,
     makai: state.makai,
@@ -485,7 +580,7 @@ function useValue(state, seat, id, option) {
   const crowded = state.hands[seat].length >= HAND_LIMIT - 1;
   if (art.kind === 'heal') {
     const amount = Math.min(art.amount, MAX_HP - state.hp[seat]);
-    return amount >= Math.min(art.amount, 5) || state.hp[seat] <= 10 ? amount : crowded && amount > 0 ? 0.5 : -1;
+    return state.hp[seat] <= 24 ? amount : crowded ? 0.5 : -1;
   }
   if (art.kind === 'weapon') {
     if (option.hits.length === 0) return -1;
@@ -512,11 +607,12 @@ function useValue(state, seat, id, option) {
   return crowded ? 0.2 : -1;
 }
 
-function bestUse(state, seat) {
+function bestUse(state, seat, strikeOnly = false) {
   let best = null;
   state.hands[seat].forEach((id, card) => {
     if (ARTIFACTS[id].kind === 'guard') return;
     optionsFor(state, seat, id).forEach((option, pick) => {
+      if (strikeOnly && !strikesNeighbor(state, seat, id, option)) return;
       const value = useValue(state, seat, id, option);
       if (!best || value > best.value) best = { value, card, pick };
     });
@@ -532,7 +628,7 @@ function botMove(state, seat, rng) {
   for (const to of movesFor(state, seat)) {
     state.pos[seat] = to;
     const terrain = state.cells[to];
-    let value = { plain: 1, forest: 1.6, mountain: 1.6, spring: 1 + (MAX_HP - hp) * 0.25, ruin: 1.4, lava: hp > 14 ? 2.4 : -4, makai: 0 }[terrain];
+    let value = { plain: 1, forest: 1.6, mountain: 1.6, spring: 1.5 + Math.max(0, START_HP - hp) * 0.25, ruin: 1.4, lava: hp > 14 ? 2.4 : -4, makai: 0 }[terrain];
     if (guards === 0 && (terrain === 'mountain' || terrain === 'plain')) value += 0.8;
     // そこから撃てるなら、行く値打ちがある。
     const shot = bestUse(state, seat);
@@ -551,6 +647,15 @@ function botMove(state, seat, rng) {
   }
   state.pos[seat] = from;
   return { type: 'move', to: best.to };
+}
+
+/** 手もとに置いておきたい度合い。 */
+function keepValue(id) {
+  const art = ARTIFACTS[id];
+  if (art.kind === 'weapon') return art.power + (art.pierce ? 1 : 0);
+  if (art.kind === 'guard') return art.block + 3;
+  if (art.kind === 'heal') return art.amount;
+  return 3;
 }
 
 function botGuard(state, seat) {
@@ -574,7 +679,22 @@ export function bot(state, seat, rng) {
   if (state.over || !state.alive[seat]) return null;
   if (state.phase === 'guard') return state.attack.targets.includes(seat) && !(seat in state.attack.guards) ? botGuard(state, seat) : null;
   if (seat !== state.turn) return null;
-  if (state.phase === 'move') return botMove(state, seat, rng);
+  if (state.phase === 'pick') {
+    // いちばんいらない神器より良ければ、入れかえる。
+    const hand = state.hands[seat];
+    let worst = 0;
+    hand.forEach((id, i) => {
+      if (keepValue(id) < keepValue(hand[worst])) worst = i;
+    });
+    return keepValue(state.found) > keepValue(hand[worst]) ? { type: 'swap', discard: worst } : { type: 'leave' };
+  }
+  if (state.phase === 'move') {
+    // となりに強く当てられて、あとでもう1枚撃てるなら、動かずに2回使う。
+    const strike = bestUse(state, seat, true);
+    const weapons = state.hands[seat].filter((id) => ARTIFACTS[id].kind === 'weapon').length;
+    if (strike && strike.value >= 4 && weapons >= 2 && TERRAINS[state.cells[state.pos[seat]]].hurt === 0) return { type: 'use', card: strike.card, pick: strike.pick };
+    return botMove(state, seat, rng);
+  }
   const use = bestUse(state, seat);
   return use && use.value > 0 ? { type: 'use', card: use.card, pick: use.pick } : { type: 'skip' };
 }

@@ -5940,6 +5940,32 @@ button.game-card-main {
   line-height: 1.2;
   opacity: 0.9;
 }
+.hn-wall-hp {
+  position: absolute;
+  right: 4px;
+  bottom: 3px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.hn-found {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #fff7e0;
+  border: 2px dashed #e0b84a;
+  border-radius: 12px;
+  padding: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.hn-dir:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 .hn-cell.is-move {
   border-color: #fff;
   box-shadow: 0 0 0 2px #ffd166 inset;

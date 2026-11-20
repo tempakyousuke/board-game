@@ -12,7 +12,11 @@ import {
   SPRING_HEAL,
   FOREST_COVER,
   MOUNTAIN_EDGE,
+  WALL_HP,
+  MAX_HP,
   movesFor,
+  neighborsOf,
+  strikesNeighbor,
   optionsFor,
   powerOf,
   damageOf,
@@ -23,7 +27,7 @@ import { play, useChanged } from '../sound.js';
 const KIND_NAMES = { weapon: '武器', guard: '防具', heal: '回復', miracle: '奇跡' };
 const MIRACLE_TEXT = {
   erupt: 'どこか1マスを溶岩に。そこにいる人に3ダメージ',
-  wall: 'だれもいない1マスを岩かべに（通れず、攻撃も止まる）',
+  wall: `だれもいない1マスを岩かべに（耐久力 ${WALL_HP}）`,
   flatten: 'どこか1マスを平地にもどす',
   swap: 'だれか1人と、場所を入れかわる',
   dash: '2マス先までの空いたマスへ飛ぶ',
@@ -62,7 +66,7 @@ function Board({ view, seat, players, act }) {
   const { phase } = view;
   const me = seat >= 0 && view.alive[seat] && !view.over;
   const name = (s) => (s === seat ? 'あなた' : `${players[s]?.name ?? '?'} さん`);
-  const myTurn = me && view.turn === seat && (phase === 'move' || phase === 'use');
+  const myTurn = me && view.turn === seat && (phase === 'move' || phase === 'use' || phase === 'pick');
   const attack = view.attack;
   const mustGuard = me && phase === 'guard' && attack.targets.includes(seat) && !attack.answered.includes(seat);
   const hand = view.myHand;
@@ -86,6 +90,7 @@ function Board({ view, seat, players, act }) {
     else if (last.t === 'miracle') play('whoosh');
     else if (last.t === 'hurt') play('fail');
     else if (last.t === 'draw') play('card');
+    else if (last.t === 'wall') play(last.broken ? 'boom' : 'bonk');
     else if (last.t === 'move') play('step');
   });
   useChanged(myTurn || mustGuard, (mine) => {
@@ -93,7 +98,13 @@ function Board({ view, seat, players, act }) {
   });
 
   const moves = myTurn && phase === 'move' ? movesFor(view, seat) : [];
-  const using = myTurn && phase === 'use';
+  const stuck = moves.length === 1 && moves[0] === view.pos[seat];
+  // 移動の場面では、移動のかわりに、となりの人に当たる武器だけ使える。
+  const striking = myTurn && phase === 'move';
+  const canStrike = striking && neighborsOf(view, seat).length > 0;
+  const using = myTurn && (phase === 'use' || canStrike);
+  const allowed = (id, option) => !striking || strikesNeighbor(view, seat, id, option);
+  const usableCard = (id) => ARTIFACTS[id].kind !== 'guard' && (!striking || optionsFor(view, seat, id).some((o) => allowed(id, o)));
   const options = using && sel.card !== null ? optionsFor(view, seat, hand[sel.card]) : [];
   const picked = sel.pick !== null ? options[sel.pick] : null;
   const selArt = sel.card !== null ? ARTIFACTS[hand[sel.card]] : null;
@@ -101,20 +112,23 @@ function Board({ view, seat, players, act }) {
   const pickCard = (card) => {
     if (sel.card === card) return setSel({ card: null, pick: null });
     const list = optionsFor(view, seat, hand[card]);
-    setSel({ card, pick: list.length === 1 ? 0 : null });
+    const ok = list.map((o, i) => (allowed(hand[card], o) ? i : -1)).filter((i) => i >= 0);
+    setSel({ card, pick: ok.length === 1 ? ok[0] : null });
   };
+  const open = sel.card !== null ? options.filter((o) => allowed(hand[sel.card], o)) : [];
 
-  const softCells = new Set(picked ? [] : options.flatMap((o) => o.cells));
+  const softCells = new Set(picked ? [] : open.flatMap((o) => o.cells));
   const hardCells = new Set(picked ? picked.cells : []);
   // 直前の攻撃 (いま受けている攻撃) の通り道。
   const shown = attack ?? (last && (last.t === 'attack' || last.t === 'miss') ? last : null);
   const shotCells = new Set(shown ? shown.cells : []);
 
   const tapCell = (cell) => {
-    if (moves.includes(cell)) return act({ type: 'move', to: cell });
-    if (!using || sel.card === null) return;
-    const pick = options.findIndex((o) => o.cells.includes(cell));
-    if (pick >= 0) setSel({ card: sel.card, pick });
+    if (using && sel.card !== null) {
+      const pick = options.findIndex((o) => allowed(hand[sel.card], o) && o.cells.includes(cell));
+      if (pick >= 0) return setSel({ card: sel.card, pick });
+    }
+    if (moves.includes(cell)) act({ type: 'move', to: cell });
   };
 
   let status;
@@ -122,8 +136,9 @@ function Board({ view, seat, players, act }) {
   else if (phase === 'guard') {
     const waiting = attack.targets.filter((t) => !attack.answered.includes(t));
     status = mustGuard ? `${name(attack.from)}の「${ARTIFACTS[attack.card].name}」が飛んできた！ 防具で受ける？` : `${waiting.map(name).join('・')}が、どう受けるか決めています`;
-  } else if (!myTurn) status = `${name(view.turn)}の番です（${phase === 'move' ? '移動' : '神器'}）`;
-  else if (phase === 'move') status = '光っているマスをタップして移動（いまのマスなら、とどまる）';
+  } else if (!myTurn) status = `${name(view.turn)}の番です（${phase === 'use' ? '神器' : '移動'}）`;
+  else if (phase === 'pick') status = `手札がいっぱい。「${ARTIFACTS[view.found].name}」をひろうなら、すてる神器をタップ`;
+  else if (phase === 'move' && sel.card === null) status = stuck ? '動けるマスがありません。いまのマスをタップして、とどまる' : canStrike ? '光っているマスへ移動。または、移動のかわりに、となりの人を武器で攻撃' : '光っているマスをタップして移動';
   else if (sel.card === null) status = '神器を1枚えらんで使う（使わなくてもよい）';
   else if (!picked) status = options.length ? '盤の光っているマスをタップして、ねらいを決める' : 'いまは使えるところがありません';
   else status = picked.hits.length || selArt.kind !== 'weapon' ? '「使う」を押すと決定' : 'その向きには、だれもいません';
@@ -133,8 +148,11 @@ function Board({ view, seat, players, act }) {
   const incoming = mustGuard ? damageOf(view, seat, attack.power, guardBlock) : 0;
 
   const line = (e) => {
-    if (e.t === 'move') return e.stay ? `${name(e.seat)}は ${TERRAINS[e.terrain].name}にとどまった` : `${name(e.seat)}が ${TERRAINS[e.terrain].name}へ移動`;
-    if (e.t === 'draw') return `${name(e.seat)}が ${TERRAINS[e.terrain].name}の神器をひろった`;
+    if (e.t === 'move') return e.stay ? `${name(e.seat)}は動けず、${TERRAINS[e.terrain].name}にとどまった` : `${name(e.seat)}が ${TERRAINS[e.terrain].name}へ移動`;
+    if (e.t === 'draw') return `${name(e.seat)}が ${TERRAINS[e.terrain].name}の神器をひろった${e.dropped ? `（「${ARTIFACTS[e.dropped].name}」をすてた）` : ''}`;
+    if (e.t === 'left') return `${name(e.seat)}は、神器をひろわなかった`;
+    if (e.t === 'strike') return `${name(e.seat)}は動かずに、となりを攻撃`;
+    if (e.t === 'wall') return e.broken ? `🧱 岩かべがこわれた` : `🧱 岩かべに ${e.amount}ダメージ`;
     if (e.t === 'hurt') return `${name(e.seat)}に ${e.amount}ダメージ（${TERRAINS[e.why]?.name ?? ARTIFACTS[e.why]?.name}）`;
     if (e.t === 'heal') return `${name(e.seat)}が HP+${e.amount}（${e.why === 'spring' ? '泉' : ARTIFACTS[e.why].name}）`;
     if (e.t === 'miss') return `${name(e.seat)}の「${ARTIFACTS[e.card].name}」は空ぶり`;
@@ -163,6 +181,7 @@ function Board({ view, seat, players, act }) {
           ${view.cells.map((terrain, cell) => {
             const who = view.pos.findIndex((p, s) => view.alive[s] && p === cell);
             const can = moves.includes(cell) || softCells.has(cell) || hardCells.has(cell);
+            const wallHp = terrain === 'wall' ? (view.walls[cell] ?? WALL_HP) : 0;
             return html`
               <button
                 key=${cell}
@@ -172,6 +191,7 @@ function Board({ view, seat, players, act }) {
                 aria-label=${`${TERRAINS[terrain].name}${who >= 0 ? `・${players[who]?.name}` : ''}`}
               >
                 <span class="hn-terrain">${TERRAINS[terrain].emoji}</span>
+                ${wallHp > 0 && html`<span class="hn-wall-hp" aria-label=${`耐久力 ${wallHp}`}>${wallHp}</span>`}
                 ${who >= 0 &&
                 html`
                   <span class=${cx('hn-piece', who === view.turn && !view.over && 'is-turn', attack?.targets.includes(who) && 'is-target')} style=${`--c:${paletteOf(players[who]).color}`}>
@@ -201,20 +221,36 @@ function Board({ view, seat, players, act }) {
           </div>
         `}
 
+        ${myTurn &&
+        phase === 'pick' &&
+        html`
+          <div class="hn-found">
+            <span>ひろえる神器</span>
+            <${Card} id=${view.found} />
+            <button class="btn btn-block" onClick=${() => act({ type: 'leave' })}>ひろわない</button>
+          </div>
+        `}
+
         ${using &&
         html`
           <div class="row">
             <button class="btn btn-primary" disabled=${!picked} onClick=${() => act({ type: 'use', card: sel.card, pick: sel.pick })}>
-              ${picked ? `「${selArt.name}」を使う${selArt.kind === 'weapon' ? `（${picked.hits.length ? `${picked.hits.map(name).join('・')}に威力${powerOf(view, seat, hand[sel.card])}` : '空ぶり'}）` : ''}` : '神器を使う'}
+              ${picked
+                ? `${striking ? '移動のかわりに' : ''}「${selArt.name}」を使う${selArt.kind === 'weapon' ? `（${picked.hits.length ? `${picked.hits.map(name).join('・')}に威力${powerOf(view, seat, hand[sel.card])}` : picked.walls.length ? `岩かべに威力${powerOf(view, seat, hand[sel.card])}` : '空ぶり'}）` : ''}`
+                : striking
+                  ? '移動のかわりに攻撃（武器をえらぶ）'
+                  : '神器を使う'}
             </button>
-            <button class="btn" onClick=${() => act({ type: 'skip' })}>使わない</button>
+            ${!striking && html`<button class="btn" onClick=${() => act({ type: 'skip' })}>使わない</button>`}
           </div>
           ${sel.card !== null &&
           options.length > 1 &&
           options[0].label &&
           html`
             <div class="hn-dirs">
-              ${options.map((o, i) => html`<button key=${i} class=${cx('hn-dir', sel.pick === i && 'is-on')} onClick=${() => setSel({ card: sel.card, pick: i })}>${o.label}${o.hits.length ? ' ●' : ''}</button>`)}
+              ${options.map(
+                (o, i) => html`<button key=${i} class=${cx('hn-dir', sel.pick === i && 'is-on')} disabled=${!allowed(hand[sel.card], o)} onClick=${() => setSel({ card: sel.card, pick: i })}>${o.label}${o.hits.length ? ' ●' : o.walls.length ? ' 🧱' : ''}</button>`,
+              )}
             </div>
           `}
         `}
@@ -229,8 +265,9 @@ function Board({ view, seat, players, act }) {
                 const on = guards.includes(i);
                 return html`<${Card} key=${i} id=${id} on=${on} dim=${art.kind !== 'guard'} onClick=${art.kind === 'guard' ? () => setGuards(on ? guards.filter((g) => g !== i) : [...guards, i]) : null} />`;
               }
-              const usable = using && art.kind !== 'guard';
-              return html`<${Card} key=${i} id=${id} on=${sel.card === i} dim=${using && !usable} onClick=${usable ? () => pickCard(i) : null} tag=${art.kind === 'guard' ? '防具（受けるとき）' : undefined} />`;
+              if (myTurn && phase === 'pick') return html`<${Card} key=${i} id=${id} onClick=${() => act({ type: 'swap', discard: i })} tag="すてる" />`;
+              const usable = using && usableCard(id);
+              return html`<${Card} key=${i} id=${id} on=${sel.card === i} dim=${using && !usable} onClick=${usable ? () => pickCard(i) : null} />`;
             })}
           </div>
         `}
@@ -259,7 +296,7 @@ function Board({ view, seat, players, act }) {
                       ruin: '効果なし（奇跡がひろえる）',
                       lava: `移動のあと、ここにいると ${terrain.hurt}ダメージ`,
                       makai: `移動のあと、ここにいると ${terrain.hurt}ダメージ`,
-                      wall: '通れない。攻撃も止まる',
+                      wall: `通れない。攻撃を受け止める（耐久力 ${WALL_HP}。0 になるとこわれて平地に）`,
                     }[id]}
                     ${Object.keys(terrain.deck).length > 0 && `／ ${Object.keys(terrain.deck).map((a) => ARTIFACTS[a].name).join('・')}`}
                   </span>
@@ -279,14 +316,21 @@ function Rules() {
       <p class="rules-lead">5×5 の箱庭を歩いて神器をひろい、ぶつけ合います。武器には形があり、地形でひろえる神器が変わります。最後の1人になれば勝ち。</p>
       <h3>3行でわかる</h3>
       <ul>
-        <li>自分の番は、<b>移動 → 神器を1枚ひろう → 神器を1枚使う</b>。</li>
+        <li>自分の番は、<b>移動 → 神器を1枚ひろう → 神器を1枚使う</b>。となりに人がいれば、移動のかわりに攻撃もできる。</li>
         <li>攻撃された人は、手札の<b>防具</b>を出して受ける。出した枚数だけ引き直せる。</li>
-        <li>HP ${START_HP} から始めて、0 になったら脱落。</li>
+        <li>HP ${START_HP} から始めて、0 になったら脱落（回復の上限は ${MAX_HP}）。</li>
       </ul>
       <h3>移動とひろう</h3>
       <ul>
-        <li>たて・よこに1マス動くか、その場にとどまります。人のいるマスと岩かべには入れません。</li>
-        <li>動いたあと、立っているマスの地形から神器を1枚ひろいます（とどまってもひろえます）。手札は ${START_HAND}枚から始まり、${HAND_LIMIT}枚まで。</li>
+        <li>たて・よこに1マス動きます。人のいるマスと岩かべには入れません。<b>その場にはとどまれません</b>（どこへも動けないときだけ、とどまれます）。</li>
+        <li>動いたあと、立っているマスの地形から神器を1枚ひろいます。手札は ${START_HAND}枚から始まり、${HAND_LIMIT}枚まで。</li>
+        <li>手札が ${HAND_LIMIT}枚のときは、古い神器を1枚すててひろうか、ひろわないかを選びます。</li>
+      </ul>
+      <h3>移動のかわりに攻撃</h3>
+      <ul>
+        <li>となり（まわり8マス）に人がいるときは、移動のかわりに、<b>その人に当たる武器</b>を使えます。</li>
+        <li>そのあと、いつもどおり神器を1枚使えます。つまり、1ターンに2回使えます。</li>
+        <li>動かないので、そのターンは神器をひろえません。溶岩や魔界の上なら、ダメージは受けます。</li>
       </ul>
       <h3>地形</h3>
       <ul>
@@ -300,7 +344,8 @@ function Rules() {
       <h3>攻撃と防御</h3>
       <ul>
         <li>武器は、たて・よこの直線、ななめ、まわり8マスなど、形が決まっています。向きのある武器は、向きを1つえらびます。</li>
-        <li><b>貫通</b>の武器は、線の上の全員に当たります。貫通でない武器は、最初の1人で止まります。岩かべは、どの武器も止めます。</li>
+        <li><b>貫通</b>の武器は、線の上の全員に当たります。貫通でない武器は、最初の1人で止まります。</li>
+        <li><b>岩かべ</b>は、どの武器も受け止めます。耐久力は ${WALL_HP} で、当たった武器の威力だけ減り、0 になるとこわれて平地になります。</li>
         <li>攻撃された人は、防具を何枚でも出せます。ダメージは「威力 − 防具の合計」。</li>
         <li>出した防具の枚数だけ、足もとの地形から引き直します。</li>
       </ul>
