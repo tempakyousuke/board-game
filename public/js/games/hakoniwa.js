@@ -13,6 +13,7 @@ import {
   FOREST_COVER,
   MOUNTAIN_EDGE,
   WALL_HP,
+  ORACLE_WAIT,
   MAX_HP,
   movesFor,
   neighborsOf,
@@ -47,6 +48,7 @@ export function describe(id) {
     cross: 'たて・よこ4方向ぜんぶ・貫通',
     star: '8方向ぜんぶ・貫通',
     bolt: 'どこにいても1人',
+    all: 'どこにいても、ほかの全員',
   }[art.shape];
   return `威力${art.power}・${shape}${art.push ? `・${art.push}マス押す` : ''}`;
 }
@@ -150,6 +152,8 @@ function Board({ view, seat, players, act }) {
   const line = (e) => {
     if (e.t === 'move') return e.stay ? `${name(e.seat)}は動けず、${TERRAINS[e.terrain].name}にとどまった` : `${name(e.seat)}が ${TERRAINS[e.terrain].name}へ移動`;
     if (e.t === 'draw') return `${name(e.seat)}が ${TERRAINS[e.terrain].name}の神器をひろった${e.dropped ? `（「${ARTIFACTS[e.dropped].name}」をすてた）` : ''}`;
+    if (e.t === 'oracleGone') return `🔮 予言の地が消えた（${ORACLE_WAIT}ターン後に、どこかに現れる）`;
+    if (e.t === 'oracle') return `🔮 予言の地が現れた`;
     if (e.t === 'left') return `${name(e.seat)}は、神器をひろわなかった`;
     if (e.t === 'strike') return `${name(e.seat)}は動かずに、となりを攻撃`;
     if (e.t === 'wall') return e.broken ? `🧱 岩かべがこわれた` : `🧱 岩かべに ${e.amount}ダメージ`;
@@ -203,6 +207,7 @@ function Board({ view, seat, players, act }) {
             `;
           })}
         </div>
+        ${view.oracleIn !== null && html`<p class="hn-here">🔮 予言の地は、あと ${view.oracleIn}ターンで、どこかに現れます</p>`}
         ${myCell >= 0 && html`<p class="hn-here">あなたは ${TERRAINS[view.cells[myCell]].emoji} ${TERRAINS[view.cells[myCell]].name}にいます・HP ${view.hp[seat]}・手札 ${hand.length} / ${HAND_LIMIT}</p>`}
       </div>
 
@@ -296,6 +301,7 @@ function Board({ view, seat, players, act }) {
                       ruin: '効果なし（奇跡がひろえる）',
                       lava: `移動のあと、ここにいると ${terrain.hurt}ダメージ`,
                       makai: `移動のあと、ここにいると ${terrain.hurt}ダメージ`,
+                      oracle: `入ると特別な神器。入られると消えて、${ORACLE_WAIT}ターン後に別のマスに現れる`,
                       wall: `通れない。攻撃を受け止める（耐久力 ${WALL_HP}。0 になるとこわれて平地に）`,
                     }[id]}
                     ${Object.keys(terrain.deck).length > 0 && `／ ${Object.keys(terrain.deck).map((a) => ARTIFACTS[a].name).join('・')}`}
@@ -339,6 +345,7 @@ function Rules() {
         <li><b>⛰️ 山</b>：重い武器と、かたい防具。山にいると、自分の攻撃の威力 +${MOUNTAIN_EDGE}。</li>
         <li><b>⛲ 泉</b>：回復と、霧のころも。泉にいると、番の初めに HP+${SPRING_HEAL}。</li>
         <li><b>🏛️ 遺跡</b>：地形を変えたり、場所を入れかえたりする奇跡。</li>
+        <li><b>🔮 予言の地</b>：盤に1マスだけ。入ると<b>特別な神器</b>（全員に当たる「天のさばき」、威力11で貫通する「竜のいぶき」、ダメージ −12 の「神のたて」、HP+20 の「命の実」）をひろえます。入られると消えて元の地形にもどり、${ORACLE_WAIT}ターン後に、どこか別のマスに現れます。奇跡で変えることはできません。</li>
         <li><b>🌋 溶岩</b>：威力の高い武器。ただし、移動のあとここにいると ${TERRAINS.lava.hurt}ダメージ。</li>
       </ul>
       <h3>攻撃と防御</h3>

@@ -5926,6 +5926,10 @@ button.game-card-main {
 .hn-cell.is-lava {
   background: #f08a4b;
 }
+.hn-cell.is-oracle {
+  background: radial-gradient(circle at 50% 45%, #fff6c9, #f0c94a);
+  box-shadow: 0 0 10px 2px rgba(255, 220, 90, 0.9);
+}
 .hn-cell.is-makai {
   background: #7a3b78;
 }

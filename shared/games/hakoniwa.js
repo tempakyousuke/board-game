@@ -7,6 +7,8 @@
 //   そのあと、いつもどおり神器を1枚使えるので、1ターンに2回使えることになる (そのターンは神器をひろえない)。
 // ・手札がいっぱい (10枚) のときにひろうなら、古い神器を1枚すてるか、ひろわないかを選ぶ。
 // ・岩かべには耐久力があり、攻撃を当てるとこわせる。
+// ・盤のどこかに「予言の地」が1マスある。入ると特別な神器をひろえるが、そのマスは消えて元の地形にもどり、
+//   5ターン後に、どこか別のマスに現れる。
 // ・武器には形がある (たて・よこの直線、ななめ、まわり8マス、十字など)。貫通する武器は、線の上の全員に当たる。
 // ・攻撃された人は、手札の防具を何枚でも出して受ける。出した枚数だけ、足もとの地形から引き直す。
 // ・地形には効果がある (森は守りやすい、山は攻撃が強くなる、泉は回復、溶岩は強い神器のかわりにダメージ)。
@@ -39,12 +41,13 @@ export const SPRING_HEAL = 2;
 export const FOREST_COVER = 1;
 export const MOUNTAIN_EDGE = 1;
 export const WALL_HP = 10; // 岩かべの耐久力
+export const ORACLE_WAIT = 5; // 予言の地が消えてから、また現れるまでのターン数
 const EVENTS_KEPT = 40;
 
 // ---- 神器 -------------------------------------------------------------------
 //
 // weapon: shape (line: たて・よこの1方向 / diag: ななめの1方向 / around: まわり8マス /
-//         cross: たて・よこ4方向ぜんぶ / star: 8方向ぜんぶ / bolt: どこにいても1人)
+//         cross: たて・よこ4方向ぜんぶ / star: 8方向ぜんぶ / bolt: どこにいても1人 / all: どこにいても全員)
 //         range: とどくマス数, pierce: 貫通するか, push: 当たった相手を押すマス数
 // guard:  block: へらせるダメージ
 // heal:   amount
@@ -86,6 +89,11 @@ export const ARTIFACTS = {
   demonSword: { name: '魔剣', emoji: '⚔️', kind: 'weapon', shape: 'cross', range: 4, pierce: true, power: 10 },
   doomLight: { name: '滅びの光', emoji: '🌟', kind: 'weapon', shape: 'star', range: 4, pierce: true, power: 9 },
   demonShield: { name: '魔王のたて', emoji: '👿', kind: 'guard', block: 10 },
+  // 予言の地 (スペシャル)
+  judgment: { name: '天のさばき', emoji: '🌩️', kind: 'weapon', shape: 'all', power: 6 },
+  dragon: { name: '竜のいぶき', emoji: '🐉', kind: 'weapon', shape: 'line', range: 4, pierce: true, power: 11 },
+  holyShield: { name: '神のたて', emoji: '✨', kind: 'guard', block: 12 },
+  lifeFruit: { name: '命の実', emoji: '🍎', kind: 'heal', amount: 20 },
 };
 
 // ---- 地形 -------------------------------------------------------------------
@@ -100,6 +108,7 @@ export const TERRAINS = {
   lava: { name: '溶岩', emoji: '🌋', hurt: 2, deck: { flameSword: 3, inferno: 3, lavaAxe: 2 } },
   makai: { name: '魔界', emoji: '😈', hurt: 4, deck: { demonSword: 3, doomLight: 2, demonShield: 2 } },
   wall: { name: '岩かべ', emoji: '🧱', hurt: 0, deck: {} },
+  oracle: { name: '予言の地', emoji: '🔮', hurt: 0, deck: { judgment: 2, dragon: 2, holyShield: 2, lifeFruit: 2 } },
 };
 const MAP_COUNTS = { plain: 8, forest: 5, mountain: 4, spring: 3, ruin: 3, lava: 2 };
 const STARTER_TERRAINS = ['plain', 'forest', 'mountain', 'spring'];
@@ -206,6 +215,10 @@ export function optionsFor(field, seat, id) {
         .map((dir, d) => ({ dir: d, label: DIR_NAMES[art.shape][d], ...ray(field, from, dir, art.range, art.pierce) }))
         .filter((option) => option.cells.length > 0);
     }
+    if (art.shape === 'all') {
+      const hits = field.pos.map((_, s) => s).filter((s) => s !== seat && field.alive[s]);
+      return [{ label: '全員', cells: hits.map((s) => field.pos[s]), hits, walls: [] }];
+    }
     if (art.shape === 'bolt') {
       return field.pos.map((cell, s) => ({ target: s, label: '', cells: [cell], hits: [s], walls: [] })).filter((o) => o.target !== seat && field.alive[o.target]);
     }
@@ -227,8 +240,8 @@ export function optionsFor(field, seat, id) {
       if (far >= 1 && far <= art.range && terrain !== 'wall' && seatHere < 0) options.push({ cell, label: '', cells: [cell], hits: [] });
       continue;
     }
-    // 地形を変える奇跡。魔界は変えられない。
-    if (terrain === 'makai') continue;
+    // 地形を変える奇跡。魔界と予言の地は変えられない。
+    if (terrain === 'makai' || terrain === 'oracle') continue;
     if (art.effect === 'erupt' && terrain !== 'lava' && terrain !== 'wall') options.push({ cell, label: '', cells: [cell], hits: seatHere >= 0 ? [seatHere] : [] });
     if (art.effect === 'wall' && terrain !== 'wall' && seatHere < 0) options.push({ cell, label: '', cells: [cell], hits: [] });
     if (art.effect === 'flatten' && terrain !== 'plain') options.push({ cell, label: '', cells: [cell], hits: [] });
@@ -276,9 +289,15 @@ export function setup({ n, rng }) {
     const other = cells.findIndex((terrain, i) => terrain === 'plain' && !pos.includes(i));
     [cells[cell], cells[other]] = [cells[other], cells[cell]];
   }
+  // 予言の地を、始まるマス以外のどこかに置く。
+  const spots = cells.map((_, i) => i).filter((i) => !pos.includes(i));
+  const spot = spots[randInt(rng, spots.length)];
+  const oracle = { cell: spot, under: cells[spot], returnsAt: 0 };
+  cells[spot] = 'oracle';
   const state = {
     n,
     cells,
+    oracle, // 予言の地 (cell: いまある場所。消えているあいだは -1 / under: その下の地形 / returnsAt: また現れるターン)
     pos,
     hp: fill(n, START_HP),
     alive: fill(n, true),
@@ -321,7 +340,7 @@ function finish(state) {
   state.result = makeResult(state.hp.slice(), { unit: 'HP', tiebreak: order, detail: { out: state.out.slice(), turns: state.turnNo } });
 }
 
-function endTurn(state) {
+function endTurn(state, rng) {
   state.attack = null;
   if (state.alive.filter(Boolean).length <= 1) return finish(state);
   let next = state.turn;
@@ -334,7 +353,18 @@ function endTurn(state) {
     state.makai = true;
     state.cells = state.cells.map(() => 'makai');
     state.walls = {};
+    state.oracle = { cell: -1, under: null, returnsAt: 0 };
     note(state, { t: 'makai' });
+  }
+  // 予言の地が、どこか別のマスに現れる (人のいないマス。岩かべは除く)。
+  if (!state.makai && state.oracle.cell < 0 && state.turnNo >= state.oracle.returnsAt) {
+    const free = state.cells.map((_, i) => i).filter((i) => state.cells[i] !== 'wall' && whoAt(state, i) < 0 && i !== state.oracle.last);
+    if (free.length) {
+      const cell = free[randInt(rng, free.length)];
+      state.oracle = { cell, under: state.cells[cell], returnsAt: 0 };
+      state.cells[cell] = 'oracle';
+      note(state, { t: 'oracle', cell });
+    }
   }
   // 泉にいる人は、番の初めに回復する。
   if (state.cells[state.pos[next]] === 'spring' && state.hp[next] < MAX_HP) {
@@ -348,7 +378,9 @@ function gain(state, seat, rng, count = 1) {
   let got = 0;
   for (let i = 0; i < count; i++) {
     if (state.hands[seat].length >= HAND_LIMIT) break;
-    const id = drawFrom(state.cells[state.pos[seat]], rng);
+    // 予言の地の上で引き直すときは、その下の地形から引く。
+    const here = state.cells[state.pos[seat]];
+    const id = drawFrom(here === 'oracle' ? state.oracle.under : here, rng);
     if (!id) break;
     state.hands[seat].push(id);
     got++;
@@ -371,9 +403,9 @@ function hitWalls(state, walls, power) {
 }
 
 /** 攻撃が片づいたあと。移動のかわりの攻撃なら、つづけて神器を使える。 */
-function afterAttack(state, first) {
+function afterAttack(state, first, rng) {
   state.attack = null;
-  if (!first || !state.alive[state.turn] || state.alive.filter(Boolean).length <= 1) return endTurn(state);
+  if (!first || !state.alive[state.turn] || state.alive.filter(Boolean).length <= 1) return endTurn(state, rng);
   state.phase = 'use';
 }
 
@@ -410,7 +442,7 @@ function resolveAttack(state, rng) {
     }
   }
   hitWalls(state, walls, power);
-  afterAttack(state, first);
+  afterAttack(state, first, rng);
 }
 
 export function act(state, seat, action, rng) {
@@ -441,7 +473,7 @@ export function act(state, seat, action, rng) {
       assert(Number.isInteger(action.discard) && action.discard >= 0 && action.discard < state.hands[seat].length, 'すてる神器をえらんでください');
       const dropped = state.hands[seat].splice(action.discard, 1)[0];
       state.hands[seat].push(state.found);
-      note(state, { t: 'draw', seat, terrain: state.cells[state.pos[seat]], dropped });
+      note(state, { t: 'draw', seat, terrain: state.foundFrom, dropped });
     } else {
       assert(action.type === 'leave', 'すてる神器をえらぶか、ひろわないかを決めてください');
       note(state, { t: 'left', seat });
@@ -461,10 +493,17 @@ export function act(state, seat, action, rng) {
     const terrain = state.cells[action.to];
     note(state, { t: 'move', seat, to: action.to, stay, terrain });
     hurt(state, seat, TERRAINS[terrain].hurt, terrain);
-    if (!state.alive[seat]) return endTurn(state);
+    if (!state.alive[seat]) return endTurn(state, rng);
     const id = drawFrom(terrain, rng);
+    if (terrain === 'oracle') {
+      // 予言の地は、入られると消えて元の地形にもどる。
+      state.cells[action.to] = state.oracle.under;
+      state.oracle = { cell: -1, under: null, returnsAt: state.turnNo + ORACLE_WAIT, last: action.to };
+      note(state, { t: 'oracleGone', seat });
+    }
     if (state.hands[seat].length >= HAND_LIMIT) {
       state.found = id;
+      state.foundFrom = terrain;
       state.phase = 'pick';
       return;
     }
@@ -475,7 +514,7 @@ export function act(state, seat, action, rng) {
   }
 
   assert(state.phase === 'use' || first, 'いまは操作できません');
-  if (action.type === 'skip') return endTurn(state);
+  if (action.type === 'skip') return endTurn(state, rng);
   assert(action.type === 'use', '不明な操作です');
   const hand = state.hands[seat];
   assert(Number.isInteger(action.card) && action.card >= 0 && action.card < hand.length, 'その神器は持っていません');
@@ -490,7 +529,7 @@ export function act(state, seat, action, rng) {
     const terrain = state.cells[state.pos[seat]];
     note(state, { t: 'strike', seat });
     hurt(state, seat, TERRAINS[terrain].hurt, terrain);
-    if (!state.alive[seat]) return endTurn(state);
+    if (!state.alive[seat]) return endTurn(state, rng);
   }
   hand.splice(action.card, 1);
 
@@ -498,14 +537,14 @@ export function act(state, seat, action, rng) {
     const amount = Math.min(art.amount, MAX_HP - state.hp[seat]);
     state.hp[seat] += amount;
     note(state, { t: 'heal', seat, amount, why: id });
-    return endTurn(state);
+    return endTurn(state, rng);
   }
   if (art.kind === 'weapon') {
     const power = powerOf(state, seat, id);
     if (option.hits.length === 0) {
       note(state, { t: 'miss', seat, card: id, cells: option.cells });
       hitWalls(state, option.walls, power);
-      return endTurn(state);
+      return endTurn(state, rng);
     }
     state.attack = { from: seat, card: id, power, dir: option.dir ?? -1, cells: option.cells, targets: option.hits.slice(), walls: option.walls.slice(), first, guards: {} };
     state.phase = 'guard';
@@ -527,7 +566,7 @@ export function act(state, seat, action, rng) {
     note(state, { t: 'miracle', seat, card: id, cell, before });
     if (art.effect === 'erupt' && option.hits.length) hurt(state, option.hits[0], art.power, id);
   }
-  endTurn(state);
+  endTurn(state, rng);
 }
 
 export function view(state, seat) {
@@ -557,6 +596,8 @@ export function view(state, seat) {
       targets: state.attack.targets,
       answered: state.attack.targets.filter((target) => target in state.attack.guards),
     },
+    // 予言の地が消えているあいだは、あと何ターンで現れるか。
+    oracleIn: state.makai || state.oracle.cell >= 0 ? null : Math.max(1, state.oracle.returnsAt - state.turnNo),
     out: state.out,
     events: state.events,
     over: state.over,
@@ -628,7 +669,7 @@ function botMove(state, seat, rng) {
   for (const to of movesFor(state, seat)) {
     state.pos[seat] = to;
     const terrain = state.cells[to];
-    let value = { plain: 1, forest: 1.6, mountain: 1.6, spring: 1.5 + Math.max(0, START_HP - hp) * 0.25, ruin: 1.4, lava: hp > 14 ? 2.4 : -4, makai: 0 }[terrain];
+    let value = { plain: 1, forest: 1.6, mountain: 1.6, spring: 1.5 + Math.max(0, START_HP - hp) * 0.25, ruin: 1.4, lava: hp > 14 ? 2.4 : -4, makai: 0, oracle: 6 }[terrain];
     if (guards === 0 && (terrain === 'mountain' || terrain === 'plain')) value += 0.8;
     // そこから撃てるなら、行く値打ちがある。
     const shot = bestUse(state, seat);

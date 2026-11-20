@@ -6,13 +6,14 @@ import * as game from '../shared/games/hakoniwa.js';
 import { GameError } from '../shared/games/common.js';
 import { mulberry32 } from '../shared/rng.js';
 
-const { cellOf, START_HP, MAX_HP, START_HAND, HAND_LIMIT, MAKAI_TURN, WALL_HP, TERRAINS } = game;
+const { cellOf, START_HP, MAX_HP, START_HAND, HAND_LIMIT, MAKAI_TURN, WALL_HP, ORACLE_WAIT, TERRAINS } = game;
 
 /** 全部が平地の盤で、席0 の番から始める。places: 席ごとの [x, y]。 */
 function arena(places, hands = []) {
   const rng = mulberry32(3);
   const state = game.setup({ n: places.length, rng });
   state.cells = state.cells.map(() => 'plain');
+  state.oracle = { cell: -1, under: null, returnsAt: 1e9 }; // 予言の地は、試すときだけ置く
   state.pos = places.map(([x, y]) => cellOf(x, y));
   state.turn = 0;
   state.hands = places.map((_, s) => (hands[s] ?? []).slice());
@@ -294,4 +295,49 @@ test('hakoniwa: 100ターンをすぎると全部のマスが魔界になり、�
       assert.ok(s.turnNo < MAKAI_TURN + 80);
     }
   }
+});
+
+test('hakoniwa: 予言の地は1マスだけ。入ると特別な神器をひろえて消え、5ターン後に別のマスに現れる', () => {
+  for (const n of [2, 5, 6]) {
+    const fresh = game.setup({ n, rng: mulberry32(70 + n) });
+    assert.equal(fresh.cells.filter((terrain) => terrain === 'oracle').length, 1);
+    assert.ok(!fresh.pos.includes(fresh.oracle.cell), '始まるマスには置かない');
+    assert.equal(game.view(fresh, 0).oracleIn, null);
+  }
+  const { state, rng } = arena([[0, 0], [4, 4]], [['flatten', 'erupt'], []]);
+  state.cells[cellOf(1, 0)] = 'oracle';
+  state.oracle = { cell: cellOf(1, 0), under: 'forest', returnsAt: 0 };
+  assert.ok(!game.optionsFor(state, 0, 'flatten').some((o) => o.cell === cellOf(1, 0)), '奇跡では変えられない');
+  assert.ok(!game.optionsFor(state, 0, 'erupt').some((o) => o.cell === cellOf(1, 0)));
+  move(state, rng, 0, 1, 0);
+  assert.ok(state.hands[0].at(-1) in TERRAINS.oracle.deck);
+  assert.equal(state.cells[cellOf(1, 0)], 'forest', '元の地形にもどる');
+  assert.equal(state.oracle.cell, -1);
+  assert.equal(game.view(state, 1).oracleIn, ORACLE_WAIT);
+  game.act(state, 0, { type: 'skip' }, rng);
+  // 5ターンのあいだは、どこにもない。
+  const goneAt = state.turnNo - 1;
+  let guard = 0;
+  while (state.oracle.cell < 0) {
+    assert.ok(!state.cells.includes('oracle'));
+    assert.ok(++guard < 20);
+    const seat = state.turn;
+    game.act(state, seat, { type: 'move', to: game.movesFor(state, seat)[0] }, rng);
+    game.act(state, seat, { type: 'skip' }, rng);
+  }
+  assert.equal(state.turnNo, goneAt + ORACLE_WAIT);
+  assert.equal(state.cells[state.oracle.cell], 'oracle');
+  assert.notEqual(state.oracle.cell, cellOf(1, 0), '同じマスには現れない');
+  assert.ok(!state.pos.includes(state.oracle.cell), '人のいるマスには現れない');
+  assert.equal(game.view(state, 0).oracleIn, null);
+});
+
+test('hakoniwa: 天のさばきは、どこにいても ほかの全員に当たる', () => {
+  const { state, rng } = arena([[0, 0], [4, 4], [2, 3]], [['judgment']]);
+  ready(state, 0);
+  use(state, rng, 0, 'judgment', () => true);
+  assert.deepEqual(game.pending(state).sort(), [1, 2]);
+  noGuard(state, rng, 1);
+  noGuard(state, rng, 2);
+  assert.deepEqual(state.hp, [START_HP, START_HP - 6, START_HP - 6]);
 });
