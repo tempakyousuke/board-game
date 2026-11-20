@@ -30,7 +30,8 @@ function use(state, rng, seat, id, pickBy) {
   const card = state.hands[seat].indexOf(id);
   const options = game.optionsFor(state, seat, id);
   const pick = typeof pickBy === 'function' ? options.findIndex(pickBy) : options.findIndex((o) => o.label === pickBy);
-  game.act(state, seat, { type: 'use', card, pick }, rng);
+  // 武器は、試すときはかならず当たることにする (命中率は、別に確かめる)。
+  game.act(state, seat, { type: 'use', card, pick }, game.ARTIFACTS[id].kind === 'weapon' ? () => 0 : rng);
 }
 const noGuard = (state, rng, seat) => game.act(state, seat, { type: 'guard', cards: [] }, rng);
 
@@ -419,4 +420,47 @@ test('hakoniwa: 魔界 (本物でも一時的でも) のあいだは、ふしぎ
     assert.ok(effect !== 'remap' && effect !== 'curse');
     assert.ok(state.cells.every((terrain) => terrain === 'makai'));
   }
+});
+
+test('hakoniwa: 遠い相手には外れることがある。となりは必ず当たり、威力の低い武器ほど遠くても当たりやすい', () => {
+  const field = arena([[0, 0], [1, 0], [4, 0], [1, 1], [4, 4]]).state;
+  const acc = (id, target) => Math.round(game.accuracyOf(field, 0, id, target) * 100);
+  assert.equal(acc('bow', 1), 100);
+  assert.equal(acc('dragon', 3), 100, 'ななめのとなりも必ず当たる');
+  assert.deepEqual([acc('bow', 2), acc('cannon', 2), acc('dragon', 2)], [70, 55, 40], '4マス先');
+  assert.equal(acc('thunder', 4), 70);
+  assert.equal(acc('judgment', 4), 100);
+
+  // 外れた人は受けなくてよい。全員に外れたら、そのまま番が進む。
+  const shoot = (roll) => {
+    const { state, rng } = arena([[0, 2], [1, 2], [4, 2]], [['cannon']]);
+    ready(state, 0);
+    game.act(state, 0, { type: 'use', card: 0, pick: game.optionsFor(state, 0, 'cannon').findIndex((o) => o.label === '右') }, () => roll);
+    return { state, rng };
+  };
+  const half = shoot(0.6); // となりには当たり、4マス先 (55%) には外れる
+  assert.deepEqual(game.pending(half.state), [1]);
+  assert.deepEqual(game.view(half.state, 2).attack.missed, [2]);
+  noGuard(half.state, half.rng, 1);
+  assert.deepEqual(half.state.hp, [START_HP, START_HP - 6, START_HP]);
+  assert.deepEqual(half.state.events.find((e) => e.t === 'attack').missed, [2]);
+
+  const far = arena([[0, 2], [4, 2]], [['bow']]);
+  ready(far.state, 0);
+  game.act(far.state, 0, { type: 'use', card: 0, pick: game.optionsFor(far.state, 0, 'bow').findIndex((o) => o.label === '右') }, () => 0.9);
+  assert.equal(far.state.phase, 'move', '外れたら、受ける場面はない');
+  assert.equal(far.state.turn, 1);
+  assert.deepEqual(far.state.hp, [START_HP, START_HP]);
+  assert.deepEqual(far.state.hands[0], [], '神器はなくなる');
+
+  // 実際の当たる割合が、命中率どおりになる。
+  const rng = mulberry32(11);
+  let hit = 0;
+  for (let i = 0; i < 3000; i++) {
+    const t = arena([[0, 2], [4, 2]], [['bow']]);
+    ready(t.state, 0);
+    game.act(t.state, 0, { type: 'use', card: 0, pick: game.optionsFor(t.state, 0, 'bow').findIndex((o) => o.label === '右') }, rng);
+    if (t.state.phase === 'guard') hit++;
+  }
+  assert.ok(Math.abs(hit / 3000 - 0.7) < 0.03, String(hit / 3000));
 });

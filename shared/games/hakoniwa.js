@@ -7,6 +7,8 @@
 //   そのあと、いつもどおり神器を1枚使えるので、1ターンに2回使えることになる (そのターンは神器をひろえない)。
 // ・手札がいっぱい (10枚) のときにひろうなら、古い神器を1枚すてるか、ひろわないかを選ぶ。
 // ・岩かべには耐久力があり、攻撃を当てるとこわせる。
+// ・遠くの相手には、攻撃が外れることがある。となりなら必ず当たり、1マス遠くなるごとに当たりにくくなる。
+//   威力の低い武器ほど、遠くても当たりやすい。
 // ・盤のどこかに「予言の地」が1マスある。入ると特別な神器をひろえるが、そのマスは消えて元の地形にもどり、
 //   5ターン後に、どこか別のマスに現れる。
 // ・武器には形がある (たて・よこの直線、ななめ、まわり8マス、十字など)。貫通する武器は、線の上の全員に当たる。
@@ -265,6 +267,22 @@ export function optionsFor(field, seat, id) {
   return options;
 }
 
+// 1マス遠くなるごとに下がる命中率。威力の低い武器ほど、下がり方がゆるい。
+export function accuracyDrop(id) {
+  const { power } = ARTIFACTS[id];
+  return power <= 5 ? 0.1 : power <= 8 ? 0.15 : 0.2;
+}
+
+/**
+ * seat が id の武器で target をねらったときの命中率 (0〜1)。
+ * となり (ななめをふくむ) なら必ず当たる。「天のさばき」は、どこにいても必ず当たる。
+ */
+export function accuracyOf(field, seat, id, target) {
+  if (ARTIFACTS[id].shape === 'all') return 1;
+  const far = Math.max(Math.abs(xOf(field.pos[target]) - xOf(field.pos[seat])), Math.abs(yOf(field.pos[target]) - yOf(field.pos[seat])));
+  return Math.max(0.1, 1 - accuracyDrop(id) * (far - 1));
+}
+
 /** 攻撃の威力 (山の上からは強くなる)。 */
 export function powerOf(field, seat, id) {
   return ARTIFACTS[id].power + (field.cells[field.pos[seat]] === 'mountain' ? MOUNTAIN_EDGE : 0);
@@ -436,7 +454,7 @@ function afterAttack(state, first, rng) {
 }
 
 function resolveAttack(state, rng) {
-  const { from, card, power, cells, targets, guards, walls, first } = state.attack;
+  const { from, card, power, cells, targets, guards, walls, first, missed } = state.attack;
   const art = ARTIFACTS[card];
   const results = [];
   for (const target of targets) {
@@ -447,7 +465,7 @@ function resolveAttack(state, rng) {
     for (const i of picked) state.hands[target].splice(i, 1);
     results.push({ seat: target, guard: used, damage });
   }
-  note(state, { t: 'attack', seat: from, card, power, cells, results });
+  note(state, { t: 'attack', seat: from, card, power, cells, results, missed });
   for (const r of results) {
     hurt(state, r.seat, r.damage, null);
     if (!state.alive[r.seat]) continue;
@@ -622,7 +640,15 @@ export function act(state, seat, action, rng) {
       hitWalls(state, option.walls, power);
       return endTurn(state, rng);
     }
-    state.attack = { from: seat, card: id, power, dir: option.dir ?? -1, cells: option.cells, targets: option.hits.slice(), walls: option.walls.slice(), first, guards: {} };
+    // 遠くの相手には、外れることがある。外れた人は、受けなくてよい。
+    const targets = option.hits.filter((target) => rng() < accuracyOf(state, seat, id, target));
+    const missed = option.hits.filter((target) => !targets.includes(target));
+    if (targets.length === 0) {
+      note(state, { t: 'attack', seat, card: id, power, cells: option.cells, results: [], missed });
+      hitWalls(state, option.walls, power);
+      return afterAttack(state, first, rng);
+    }
+    state.attack = { from: seat, card: id, power, dir: option.dir ?? -1, cells: option.cells, targets, missed, walls: option.walls.slice(), first, guards: {} };
     state.phase = 'guard';
     return;
   }
@@ -674,6 +700,7 @@ export function view(state, seat) {
       power: state.attack.power,
       cells: state.attack.cells,
       targets: state.attack.targets,
+      missed: state.attack.missed,
       answered: state.attack.targets.filter((target) => target in state.attack.guards),
     },
     // 予言の地が消えているあいだは、あと何ターンで現れるか。
@@ -712,7 +739,7 @@ function useValue(state, seat, id, option) {
     for (const target of option.hits) {
       const sure = damageOf(state, target, power, 0);
       const likely = Math.max(0, sure - GUARD_GUESS);
-      value += likely + 0.3 * sure + (sure >= state.hp[target] ? 5 : 0);
+      value += (likely + 0.3 * sure + (sure >= state.hp[target] ? 5 : 0)) * accuracyOf(state, seat, id, target);
     }
     return value;
   }

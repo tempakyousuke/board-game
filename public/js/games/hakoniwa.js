@@ -23,6 +23,8 @@ import {
   strikesNeighbor,
   optionsFor,
   powerOf,
+  accuracyOf,
+  accuracyDrop,
   damageOf,
 } from '/shared/games/hakoniwa.js';
 import { Avatar, paletteOf } from '../ui.js';
@@ -88,7 +90,7 @@ function Board({ view, seat, players, act }) {
   const last = view.events[view.events.length - 1];
   useChanged(view.events.length ? last.seq : 0, () => {
     if (!last) return;
-    if (last.t === 'attack') play(last.results.some((r) => r.damage > 0) ? 'boom' : 'bonk');
+    if (last.t === 'attack') play(last.results.some((r) => r.damage > 0) ? 'boom' : last.results.length ? 'bonk' : 'whoosh');
     else if (last.t === 'miss') play('whoosh');
     else if (last.t === 'heal') play('chime');
     else if (last.t === 'dead') play('lose');
@@ -172,6 +174,7 @@ function Board({ view, seat, players, act }) {
     if (e.t === 'miracle') return `${name(e.seat)}が「${ARTIFACTS[e.card].name}」を使った${e.target !== undefined ? `（${name(e.target)}と）` : ''}`;
     if (e.t === 'attack') {
       const parts = e.results.map((r) => `${name(r.seat)}に ${r.damage}ダメージ${r.guard.length ? `（${r.guard.map((id) => ARTIFACTS[id].name).join('・')}で受けた）` : ''}`);
+      for (const s of e.missed ?? []) parts.push(`${name(s)}には外れた`);
       return `${name(e.seat)}の「${ARTIFACTS[e.card].name}」威力${e.power} → ${parts.join('、')}`;
     }
     return '';
@@ -247,7 +250,7 @@ function Board({ view, seat, players, act }) {
           <div class="row">
             <button class="btn btn-primary" disabled=${!picked} onClick=${() => act({ type: 'use', card: sel.card, pick: sel.pick })}>
               ${picked
-                ? `${striking ? '移動のかわりに' : ''}「${selArt.name}」を使う${selArt.kind === 'weapon' ? `（${picked.hits.length ? `${picked.hits.map(name).join('・')}に威力${powerOf(view, seat, hand[sel.card])}` : picked.walls.length ? `岩かべに威力${powerOf(view, seat, hand[sel.card])}` : '空ぶり'}）` : ''}`
+                ? `${striking ? '移動のかわりに' : ''}「${selArt.name}」を使う${selArt.kind === 'weapon' ? `（${picked.hits.length ? `${picked.hits.map((t) => `${name(t)}に命中${Math.round(accuracyOf(view, seat, hand[sel.card], t) * 100)}%`).join('・')}・威力${powerOf(view, seat, hand[sel.card])}` : picked.walls.length ? `岩かべに威力${powerOf(view, seat, hand[sel.card])}` : '空ぶり'}）` : ''}`
                 : striking
                   ? '移動のかわりに攻撃（武器をえらぶ）'
                   : '神器を使う'}
@@ -360,6 +363,7 @@ function Rules() {
         <li>武器は、たて・よこの直線、ななめ、まわり8マスなど、形が決まっています。向きのある武器は、向きを1つえらびます。</li>
         <li><b>貫通</b>の武器は、線の上の全員に当たります。貫通でない武器は、最初の1人で止まります。</li>
         <li><b>岩かべ</b>は、どの武器も受け止めます。耐久力は ${WALL_HP} で、当たった武器の威力だけ減り、0 になるとこわれて平地になります。</li>
+        <li><b>遠い相手には、外れることがあります。</b>となり（ななめもふくむ）なら必ず当たり、1マス遠くなるごとに命中率が下がります。下がり方は、威力5以下の武器は10%ずつ、威力6〜8は15%ずつ、威力9以上は20%ずつ。たとえば「ゆみ」（威力5）は4マス先でも70%、「竜のいぶき」（威力11）は4マス先だと40%です。命中率は、使う前にボタンに出ます。「天のさばき」だけは必ず当たります。</li>
         <li>攻撃された人は、防具を何枚でも出せます。ダメージは「威力 − 防具の合計」。</li>
         <li>出した防具の枚数だけ、足もとの地形から引き直します。</li>
       </ul>
